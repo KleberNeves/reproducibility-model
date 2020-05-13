@@ -9,7 +9,6 @@ library(metafor)
 library(zip)
 library(pwr)
 library(data.table)
-library(boot)
 
 possible.outcomes = c(
   "False Positives",
