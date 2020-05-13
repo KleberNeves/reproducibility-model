@@ -121,7 +121,7 @@ double.dist.input = list(
 )
 
 preset.scenarios = c(
-  "Optimistic: low variance and error, large effects, large samples, no publication bias",
+  "Optimistic: low variability, large effects, high power, no publication bias",
   "Optimistic, but with publication bias",
   "Small effects, large sample sizes",
   "Large effects, small sample sizes",
