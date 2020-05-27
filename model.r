@@ -595,34 +595,6 @@ typeI.error.rate = function(published.only = T) {
   return (error.count / nrow(ests))
 }
 
-# TYPE I/FALSE POSITIVE ERROR RATE (CONDITIONAL ON SIGNAL BEING RIGHT)
-typeI.error.rate.signal = function(published.only = T) {
-  if (published.only) {
-    ests = estimates.df %>% filter(Published == T)
-  } else {
-    ests = estimates.df
-  }
-  
-  if (nrow(ests) == 0) {
-    return (NA)
-  }
-  
-  # Wrong Signal
-  ests$signalError = (ests$Real.Effect.Size / ests$Estimated.Effect.Size < 0)
-  
-  ests = ests %>% filter(!signalError)
-  
-  if (nrow(ests) == 0) {
-    return (NA)
-  }
-  
-  # False Positives
-  ests$isError = (abs(ests$Real.Effect.Size) < ests$Min.Interesting.Effect) & (ests$p.value <= ests$Alpha)
-  
-  error.count = nrow(ests %>% filter(isError))
-  return (error.count / nrow(ests))
-}
-
 # TYPE II/FALSE NEGATIVE ERROR RATE
 typeII.error.rate = function(published.only = T) {
   if (published.only) {
@@ -746,6 +718,34 @@ pos.pred.value = function(published.only = T) {
   return (tps / nrow(ests))
 }
 
+# POSITIVE PREDICTIVE VALUE/1 - FALSE FINDING RATE (CONDITIONAL ON SIGNAL BEING RIGHT)
+pos.pred.value.signal = function(published.only = T) {
+  ests = estimates.df %>% filter(p.value <= Alpha)
+  
+  if (published.only) {
+    ests = ests %>% filter(Published == T)
+  }
+  
+  if (nrow(ests) == 0) {
+    return (NaN)
+  }
+  
+  # Wrong Signal
+  ests$signalError = (ests$Real.Effect.Size / ests$Estimated.Effect.Size < 0)
+  
+  ests = ests %>% filter(!signalError)
+  
+  if (nrow(ests) == 0) {
+    return (NA)
+  }
+  
+  # Positive Predictive Value = True Positives / (True Positives + False Positives)
+  ests$isTP = (abs(ests$Real.Effect.Size) >= ests$Min.Interesting.Effect) & (ests$p.value <= ests$Alpha)
+  
+  tps = nrow(ests %>% filter(isTP))
+  return (tps / nrow(ests))
+}
+
 # NEGATIVE PREDICTIVE VALUE
 neg.pred.value = function(published.only = T) {
   ests = estimates.df %>% filter(p.value > Alpha)
@@ -785,6 +785,36 @@ minimum.effect.count = function(published.only = T) {
   count = nrow(ests %>% filter(isDiscovery)) / nrow(ests)
   return (count)
 }
+
+# TRUE POSITIVES (CONDITIONAL ON SIGNAL BEING RIGHT)
+minimum.effect.count.signal = function(published.only = T) {
+  if (published.only) {
+    ests = estimates.df %>% filter(Published == T)
+  } else {
+    ests = estimates.df
+  }
+  
+  if (nrow(ests) == 0) {
+    return (NaN)
+  }
+  
+  # Wrong Signal
+  ests$signalError = (ests$Real.Effect.Size / ests$Estimated.Effect.Size < 0)
+  
+  ests = ests %>% filter(!signalError)
+  
+  if (nrow(ests) == 0) {
+    return (NA)
+  }
+  
+  # True positives
+  ests$isDiscovery = (abs(ests$Real.Effect.Size) >= ests$Min.Interesting.Effect) &
+    (ests$p.value <= ests$Alpha)
+  
+  count = nrow(ests %>% filter(isDiscovery)) / nrow(ests)
+  return (count)
+}
+
 
 # TRUE NEGATIVES
 true.negatives = function(published.only = T) {
