@@ -595,6 +595,34 @@ typeI.error.rate = function(published.only = T) {
   return (error.count / nrow(ests))
 }
 
+# TYPE I/FALSE POSITIVE ERROR RATE (CONDITIONAL ON SIGNAL BEING RIGHT)
+typeI.error.rate.signal = function(published.only = T) {
+  if (published.only) {
+    ests = estimates.df %>% filter(Published == T)
+  } else {
+    ests = estimates.df
+  }
+  
+  if (nrow(ests) == 0) {
+    return (NA)
+  }
+  
+  # Wrong Signal
+  ests$signalError = (ests$Real.Effect.Size / ests$Estimated.Effect.Size < 0)
+  
+  ests = ests %>% filter(!signalError)
+  
+  if (nrow(ests) == 0) {
+    return (NA)
+  }
+  
+  # False Positives
+  ests$isError = (abs(ests$Real.Effect.Size) < ests$Min.Interesting.Effect) & (ests$p.value <= ests$Alpha)
+  
+  error.count = nrow(ests %>% filter(isError))
+  return (error.count / nrow(ests))
+}
+
 # TYPE II/FALSE NEGATIVE ERROR RATE
 typeII.error.rate = function(published.only = T) {
   if (published.only) {
@@ -633,6 +661,7 @@ typeS.error.rate = function(published.only = T) {
   error.count = nrow(ests %>% filter(isError))
   return (error.count / nrow(ests))
 }
+
 
 # TYPE M/MAGNITUDE/EXAGGERATION FACTOR
 exaggeration.factor = function(published.only = T) {
