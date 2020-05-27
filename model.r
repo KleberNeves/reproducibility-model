@@ -451,6 +451,13 @@ make.evaluation.tests = function(input) {
                             `Published Effects Only?` = pb))
   
   pb = T
+  df = rbind(df, data.frame(Measure = "True Positives", Value = minimum.effect.count.signal(pb),
+                            `Published Effects Only?` = pb))
+  pb = F
+  df = rbind(df, data.frame(Measure = "True Positives", Value = minimum.effect.count.signal(pb),
+                            `Published Effects Only?` = pb))
+  
+  pb = T
   df = rbind(df, data.frame(Measure = "True Negatives", Value = true.negatives(pb),
                             `Published Effects Only?` = pb))
   pb = F
@@ -504,6 +511,13 @@ make.evaluation.tests = function(input) {
                             `Published Effects Only?` = pb))
   pb = F
   df = rbind(df, data.frame(Measure = "Positive Predictive Value", Value = pos.pred.value(pb),
+                            `Published Effects Only?` = pb))
+  
+  pb = T
+  df = rbind(df, data.frame(Measure = "Positive Predictive Value", Value = pos.pred.value.signal(pb),
+                            `Published Effects Only?` = pb))
+  pb = F
+  df = rbind(df, data.frame(Measure = "Positive Predictive Value", Value = pos.pred.value.signal(pb),
                             `Published Effects Only?` = pb))
   
   pb = T
