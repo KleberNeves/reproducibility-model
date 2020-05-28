@@ -692,7 +692,7 @@ typeS.error.rate.above.min = function(published.only = T) {
 
 # TYPE M/MAGNITUDE/EXAGGERATION FACTOR FOR EFFECTS ABOVE MIN OF INTEREST
 exaggeration.factor.above.min = function(published.only = T) {
-  ests = estimates.df %>% filter(p.value < Alpha, abs(Estimated.Effect.Size) >= Min.Interesting.Effect)
+  ests = estimates.df %>% filter(p.value < Alpha, abs(Real.Effect.Size) >= Min.Interesting.Effect)
   
   if (published.only) {
     ests = ests %>% filter(Published == T)
