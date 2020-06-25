@@ -3,9 +3,6 @@
 make.evaluation.tests = function() {
   df = data.frame()
   
-  t = "Error rates and discoveries ..."
-  print(t); if (shiny_running) { showNotification(t, type = "default") }
-  
   pb = T; df = rbind(df, minimum.effect.count(pb))
   pb = F; df = rbind(df, minimum.effect.count(pb))
   
