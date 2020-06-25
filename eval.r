@@ -51,7 +51,8 @@ typeI.error.rate = function(published.only = T) {
   
   result = data.frame(Measure = "False Positives",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   if (published.only) {
     ests = estimates.df %>% filter(Published == T)
@@ -79,7 +80,8 @@ typeII.error.rate = function(published.only = T) {
   
   result = data.frame(Measure = "False Negatives",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   if (published.only) {
     ests = estimates.df %>% filter(Published == T)
@@ -107,7 +109,8 @@ typeS.error.rate = function(published.only = T) {
   
   result = data.frame(Measure = "Signal Error",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value < Alpha)
   
@@ -134,7 +137,8 @@ exaggeration.factor = function(published.only = T) {
   
   result = data.frame(Measure = "Exaggeration Factor",
                       Statistic = c("Median", "IQR", "SD", "N"),
-                      Value = c(NA,NA,NA,0))
+                      Value = c(NA,NA,NA,0),
+                      Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value < Alpha)
   
@@ -164,7 +168,8 @@ typeS.error.rate.above.min = function(published.only = T) {
   
   result = data.frame(Measure = "Signal Error (Effects > Min)",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value < Alpha, abs(Estimated.Effect.Size) >= Min.Interesting.Effect)
   
@@ -191,7 +196,8 @@ exaggeration.factor.above.min = function(published.only = T) {
   
   result = data.frame(Measure = "Exaggeration Factor (Effects > Min)",
                       Statistic = c("Median", "IQR", "SD", "N"),
-                      Value = c(NA,NA,NA,0))
+                      Value = c(NA,NA,NA,0),
+                      Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value < Alpha, abs(Real.Effect.Size) >= Min.Interesting.Effect)
   
@@ -221,7 +227,8 @@ pos.pred.value = function(published.only = T) {
   
   result = data.frame(Measure = "Positive Predictive Value",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value <= Alpha)
   
@@ -249,7 +256,8 @@ pos.pred.value.signal = function(published.only = T) {
   
   result = data.frame(Measure = "Positive Predictive Value (Correct Signal)",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value <= Alpha)
   
@@ -285,7 +293,8 @@ neg.pred.value = function(published.only = T) {
   
   result = data.frame(Measure = "Negative Predictive Value",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value > Alpha)
   
@@ -313,7 +322,8 @@ minimum.effect.count = function(published.only = T) {
   
   result = data.frame(Measure = "True Positives",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   if (published.only) {
     ests = estimates.df %>% filter(Published == T)
@@ -341,7 +351,8 @@ minimum.effect.count.signal = function(published.only = T) {
   
   result = data.frame(Measure = "True Positives (Correct Signal)",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   if (published.only) {
     ests = estimates.df %>% filter(Published == T)
@@ -379,7 +390,8 @@ true.negatives = function(published.only = T) {
   
   result = data.frame(Measure = "True Negatives",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   if (published.only) {
     ests = estimates.df %>% filter(Published == T)
@@ -407,7 +419,8 @@ n.real.effects.above.minimum = function(published.only = T) {
   
   result = data.frame(Measure = "Discoveries",
                       Statistic = c("Number", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   if (published.only) {
     ests = estimates.df %>% filter(Published == T)
@@ -434,7 +447,8 @@ efficiency = function(published.only = T) {
   
   result = data.frame(Measure = "Efficiency",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   if (published.only) {
     ests = estimates.df %>% filter(Published == T)
@@ -463,7 +477,8 @@ effectiveness = function(published.only = T) {
   
   result = data.frame(Measure = "Effectiveness",
                       Statistic = c("Rate", "SD", "N"),
-                      Value = c(NA, NA, 0))
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
   
   if (published.only) {
     ests = estimates.df %>% filter(Published == T)
