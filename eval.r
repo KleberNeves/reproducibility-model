@@ -6,89 +6,41 @@ make.evaluation.tests = function(input) {
   t = "Error rates and discoveries ..."
   print(t); if (shiny_running) { showNotification(t, type = "default") }
   
-  pb = T
-  df = rbind(df, data.frame(Measure = "True Positives", Value = minimum.effect.count(pb),
-                            `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "True Positives", Value = minimum.effect.count(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, minimum.effect.count(pb))
+  pb = F; df = rbind(df, minimum.effect.count(pb))
   
-  pb = T
-  df = rbind(df, data.frame(Measure = "True Positives", Value = minimum.effect.count.signal(pb),
-                            `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "True Positives", Value = minimum.effect.count.signal(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, minimum.effect.count.signal(pb))
+  pb = F; df = rbind(df, minimum.effect.count.signal(pb))
   
-  pb = T
-  df = rbind(df, data.frame(Measure = "True Negatives", Value = true.negatives(pb),
-                            `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "True Negatives", Value = true.negatives(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, true.negatives(pb))
+  pb = F; df = rbind(df, true.negatives(pb))
   
-  pb = T
-  df = rbind(df,data.frame(Measure = "False Positives", Value = typeI.error.rate(pb),
-                           `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "False Positives", Value = typeI.error.rate(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, typeI.error.rate(pb))
+  pb = F; df = rbind(df, typeI.error.rate(pb))
   
-  pb = T
-  df = rbind(df, data.frame(Measure = "False Negatives", Value = typeII.error.rate(pb),
-                            `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "False Negatives", Value = typeII.error.rate(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, typeII.error.rate(pb))
+  pb = F; df = rbind(df, typeII.error.rate(pb))
   
-  pb = T
-  df = rbind(df, data.frame(Measure = "Signal Errors", Value = typeS.error.rate(pb),
-                            `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "Signal Errors", Value = typeS.error.rate(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, typeS.error.rate(pb))
+  pb = F; df = rbind(df, typeS.error.rate(pb))
   
-  pb = T
-  df = rbind(df, data.frame(Measure = "Exaggeration Factor", Value = exaggeration.factor(pb),
-                            `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "Exaggeration Factor", Value = exaggeration.factor(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, exaggeration.factor(pb))
+  pb = F; df = rbind(df, exaggeration.factor(pb))
   
-  pb = T
-  df = rbind(df, data.frame(Measure = "Signal Errors (Effects > Min)", Value = typeS.error.rate.above.min(pb),
-                            `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "Signal Errors (Effects > Min)", Value = typeS.error.rate.above.min(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, typeS.error.rate.above.min(pb))
+  pb = F; df = rbind(df, typeS.error.rate.above.min(pb))
   
-  pb = T
-  df = rbind(df, data.frame(Measure = "Exaggeration Factor (Effects > Min)", Value = exaggeration.factor.above.min(pb),
-                            `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "Exaggeration Factor (Effects > Min)", Value = exaggeration.factor.above.min(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, exaggeration.factor.above.min(pb))
+  pb = F; df = rbind(df, exaggeration.factor.above.min(pb))
   
-  pb = T
-  df = rbind(df, data.frame(Measure = "Positive Predictive Value", Value = pos.pred.value(pb),
-                            `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "Positive Predictive Value", Value = pos.pred.value(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, pos.pred.value(pb))
+  pb = F; df = rbind(df, pos.pred.value(pb),)
   
-  pb = T
-  df = rbind(df, data.frame(Measure = "Positive Predictive Value", Value = pos.pred.value.signal(pb),
-                            `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "Positive Predictive Value", Value = pos.pred.value.signal(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, pos.pred.value.signal(pb))
+  pb = F; df = rbind(df, pos.pred.value.signal(pb))
   
-  pb = T
-  df = rbind(df, data.frame(Measure = "Negative Predictive Value", Value = neg.pred.value(pb),
-                            `Published Effects Only?` = pb))
-  pb = F
-  df = rbind(df, data.frame(Measure = "Negative Predictive Value", Value = neg.pred.value(pb),
-                            `Published Effects Only?` = pb))
+  pb = T; df = rbind(df, neg.pred.value(pb))
+  pb = F; df = rbind(df, neg.pred.value(pb))
   
   if (input$calc.repro) {
     
@@ -475,4 +427,3 @@ effectiveness = function(published.only = T) {
   
   return (count / tried)
 }
-### EVALUATION FUNCTIONS WITHIN THE BLOCK ABOVE
