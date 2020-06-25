@@ -31,7 +31,7 @@ make.evaluation.tests = function() {
   pb = F; df = rbind(df, exaggeration.factor.above.min(pb))
   
   pb = T; df = rbind(df, pos.pred.value(pb))
-  pb = F; df = rbind(df, pos.pred.value(pb),)
+  pb = F; df = rbind(df, pos.pred.value(pb))
   
   pb = T; df = rbind(df, pos.pred.value.signal(pb))
   pb = F; df = rbind(df, pos.pred.value.signal(pb))
