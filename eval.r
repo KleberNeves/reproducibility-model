@@ -1,6 +1,6 @@
 # Measures to evaluate the corpus of estimates of effect sizes
 # General function that calculates all rates, in all cases
-make.evaluation.tests = function() {
+make.evaluation.tests = function(input) {
   df = data.frame()
   
   pb = T; df = rbind(df, minimum.effect.count(pb))
@@ -42,6 +42,65 @@ make.evaluation.tests = function() {
   pb = T; df = rbind(df, neg.pred.value(pb))
   pb = F; df = rbind(df, neg.pred.value(pb))
 
+  if (input$calc.repro) {
+    
+    df$variable = character(nrow(df))
+    
+    t = "Reproducibility ..."
+    print(t); if (shiny_running) { showNotification(t, type = "default") }
+    
+    # Run RR many times and store the results
+    make.reps = function (rep_i) {
+      
+      print(paste(rep_i, "/", input$repro.repeats, sep = ""))
+      
+      rdf = data.frame(
+        Measure = character(0),
+        Value = numeric(0),
+        Sample.Size = numeric(0),
+        Rep = numeric(0)
+      )
+      
+      master.rep.df <<- perform.replications(input, rep.power = 0.95)
+      
+      # Computes reproducibility rates
+      rdf = rbind(rdf, reproducibility.rate(master.rep.df, "BRI", input, n.sample = 20, measure.name = "Reproducibility Rate (BRI)", rep_i))
+      rdf = rbind(rdf, reproducibility.rate(master.rep.df, "BRI", input, n.sample = -1, measure.name = "Reproducibility Rate (BRI) All Papers", rep_i))
+      rdf = rbind(rdf, reproducibility.rate(master.rep.df, "SSS", input, n.sample = 20, measure.name = "Reproducibility Rate (SSS)", rep_i))
+      rdf = rbind(rdf, reproducibility.rate(master.rep.df, "SSS", input, n.sample = -1, measure.name = "Reproducibility Rate (SSS) All Papers", rep_i))
+      # rdf = rbind(rdf, reproducibility.rate(master.rep.df, "ST", input, n.sample = 20, measure.name = "Reproducibility Rate (ST)", rep_i))
+      # rdf = rbind(rdf, reproducibility.rate(master.rep.df, "ST", input, n.sample = -1, measure.name = "Reproducibility Rate (ST) All Papers", rep_i))
+      
+      rdf
+    }
+    
+    rr.df = adply(1:input$repro.repeats, 1, make.reps)
+    
+    # CALCULATE CIs
+    rr.df = rr.df %>% group_by(Measure) %>% summarise(MeanValue = mean(Value, na.rm = T),
+                                                      SDValue = sd(Value, na.rm = T),
+                                                      SEMValue = SDValue / sqrt(input$repro.repeats),
+                                                      CI.side = -SEMValue * qnorm(0.05 / 2),
+                                                      CI.low = max(0, MeanValue - CI.side, na.rm = T),
+                                                      CI.high = min(MeanValue + CI.side, 1, na.rm = T),
+                                                      TypeIErrorRateMean = mean(TypeIErrorRate, na.rm = T),
+                                                      TypeIIErrorRateMean = mean(TypeIIErrorRate, na.rm = T),
+                                                      TypeSErrorRateMean = mean(TypeSErrorRate, na.rm = T),
+                                                      MFactorMean = mean(MFactor, na.rm = T),
+                                                      PPVMean = mean(PPV, na.rm = T),
+                                                      NPVMean = mean(NPV, na.rm = T)
+    )
+    
+    # ADD CIS TO RESULTs
+    rr.df = rr.df %>% select(Measure, MeanValue, CI.low, CI.high, TypeIErrorRateMean, TypeIIErrorRateMean, TypeSErrorRateMean, MFactorMean, PPVMean, NPVMean) %>% melt(id.vars = "Measure") %>% mutate(Published.Effects.Only. = T) %>% select(1,3,4,2)
+    colnames(rr.df) = colnames(df)
+    
+    df = rbind(df, rr.df)
+    
+  } else { # if not calc.repro, just add the variable column
+    df$variable = ""
+  }
+  
   df
 }
 
