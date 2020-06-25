@@ -388,20 +388,20 @@ run.simulation = function(input) {
   presynthesis.df <<- estimates.df[, .SD[1:estimates.rowcount]]
   estimates.df <<- synthesize(presynthesis.df)
   
-  t = "Evaluating the literature ..."
-  print(t); if (shiny_running) { showNotification(t, type = "default") }
-  
-  new.measures = make.evaluation.tests(Linput)
-  
-  if (input$scenarioName == "") {
-    new.measures$scenario = Linput$scenario 
-  } else {
-    new.measures$scenario = Linput$scenarioName
-  }
-  
-  evdf = rbind(evdf, new.measures)
-  
-  eval.df <<- evdf
+  # t = "Evaluating the literature ..."
+  # print(t); if (shiny_running) { showNotification(t, type = "default") }
+  # 
+  # new.measures = make.evaluation.tests(Linput)
+  # 
+  # if (input$scenarioName == "") {
+  #   new.measures$scenario = Linput$scenario 
+  # } else {
+  #   new.measures$scenario = Linput$scenarioName
+  # }
+  # 
+  # evdf = rbind(evdf, new.measures)
+  # 
+  # eval.df <<- evdf
 
   t = "... and ... Finished!"
   print(t); if (shiny_running) { showNotification(t, type = "error") }
