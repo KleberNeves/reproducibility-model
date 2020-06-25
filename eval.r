@@ -42,16 +42,16 @@ make.evaluation.tests = function() {
   df
 }
 
-prop.sd = function (p, n) {
-  return ((n * p * (1 - p) ^ 0.5))
+prop.sep = function (p, n) {
+  return ((p * (1 - p) / n) ^ 0.5)
 }
 
 # TYPE I/FALSE POSITIVE ERROR RATE
 typeI.error.rate = function(published.only = T) {
   
   result = data.frame(Measure = "False Positives",
-                      Statistic = c("Rate", "SD", "N", "SE"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   if (published.only) {
@@ -71,7 +71,7 @@ typeI.error.rate = function(published.only = T) {
   error.count = nrow(ests %>% filter(isError))
   
   value = error.count / nrow(ests)
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -79,8 +79,8 @@ typeI.error.rate = function(published.only = T) {
 typeII.error.rate = function(published.only = T) {
   
   result = data.frame(Measure = "False Negatives",
-                      Statistic = c("Rate", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   if (published.only) {
@@ -100,7 +100,7 @@ typeII.error.rate = function(published.only = T) {
   error.count = nrow(ests %>% filter(isError))
   
   value = error.count / nrow(ests)
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -108,8 +108,8 @@ typeII.error.rate = function(published.only = T) {
 typeS.error.rate = function(published.only = T) {
   
   result = data.frame(Measure = "Signal Error",
-                      Statistic = c("Rate", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value < Alpha)
@@ -128,7 +128,7 @@ typeS.error.rate = function(published.only = T) {
   error.count = nrow(ests %>% filter(isError))
   
   value = error.count / nrow(ests)
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -136,8 +136,8 @@ typeS.error.rate = function(published.only = T) {
 exaggeration.factor = function(published.only = T) {
   
   result = data.frame(Measure = "Exaggeration Factor",
-                      Statistic = c("Median", "IQR", "SD", "N", "SEP"),
-                      Value = c(NA,NA,NA,0, NA),
+                      Statistic = c("Median", "IQR", "SEP", "N"),
+                      Value = c(NA,NA,NA,0),
                       Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value < Alpha)
@@ -167,8 +167,8 @@ exaggeration.factor = function(published.only = T) {
 typeS.error.rate.above.min = function(published.only = T) {
   
   result = data.frame(Measure = "Signal Error (Effects > Min)",
-                      Statistic = c("Rate", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value < Alpha, abs(Estimated.Effect.Size) >= Min.Interesting.Effect)
@@ -187,7 +187,7 @@ typeS.error.rate.above.min = function(published.only = T) {
   error.count = nrow(ests %>% filter(isError))
   
   value = error.count / nrow(ests)
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -195,8 +195,8 @@ typeS.error.rate.above.min = function(published.only = T) {
 exaggeration.factor.above.min = function(published.only = T) {
   
   result = data.frame(Measure = "Exaggeration Factor (Effects > Min)",
-                      Statistic = c("Median", "IQR", "SD", "N", "SEP"),
-                      Value = c(NA,NA,NA,0, NA),
+                      Statistic = c("Median", "IQR", "SEP", "N"),
+                      Value = c(NA,NA,NA,0),
                       Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value < Alpha, abs(Real.Effect.Size) >= Min.Interesting.Effect)
@@ -226,8 +226,8 @@ exaggeration.factor.above.min = function(published.only = T) {
 pos.pred.value = function(published.only = T) {
   
   result = data.frame(Measure = "Positive Predictive Value",
-                      Statistic = c("Rate", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value <= Alpha)
@@ -247,7 +247,7 @@ pos.pred.value = function(published.only = T) {
   tps = nrow(ests %>% filter(isTP))
   
   value = tps / nrow(ests)
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -255,8 +255,8 @@ pos.pred.value = function(published.only = T) {
 pos.pred.value.signal = function(published.only = T) {
   
   result = data.frame(Measure = "Positive Predictive Value (Correct Signal)",
-                      Statistic = c("Rate", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value <= Alpha)
@@ -284,7 +284,7 @@ pos.pred.value.signal = function(published.only = T) {
   tps = nrow(ests %>% filter(isTP))
   
   value = tps / nrow(ests)
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -292,8 +292,8 @@ pos.pred.value.signal = function(published.only = T) {
 neg.pred.value = function(published.only = T) {
   
   result = data.frame(Measure = "Negative Predictive Value",
-                      Statistic = c("Rate", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value > Alpha)
@@ -313,7 +313,7 @@ neg.pred.value = function(published.only = T) {
   tns = nrow(ests %>% filter(isTN))
   
   value = tns / nrow(ests)
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -321,8 +321,8 @@ neg.pred.value = function(published.only = T) {
 minimum.effect.count = function(published.only = T) {
   
   result = data.frame(Measure = "True Positives",
-                      Statistic = c("Rate", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   if (published.only) {
@@ -342,7 +342,7 @@ minimum.effect.count = function(published.only = T) {
   count = nrow(ests %>% filter(isDiscovery)) / nrow(ests)
   
   value = count
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -350,8 +350,8 @@ minimum.effect.count = function(published.only = T) {
 minimum.effect.count.signal = function(published.only = T) {
   
   result = data.frame(Measure = "True Positives (Correct Signal)",
-                      Statistic = c("Rate", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   if (published.only) {
@@ -380,7 +380,7 @@ minimum.effect.count.signal = function(published.only = T) {
   count = nrow(ests %>% filter(isDiscovery)) / nrow(ests)
   
   value = count
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -389,8 +389,8 @@ minimum.effect.count.signal = function(published.only = T) {
 true.negatives = function(published.only = T) {
   
   result = data.frame(Measure = "True Negatives",
-                      Statistic = c("Rate", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   if (published.only) {
@@ -410,7 +410,7 @@ true.negatives = function(published.only = T) {
   count = nrow(ests %>% filter(isNonDiscovery)) / nrow(ests)
   
   value = count
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -418,8 +418,8 @@ true.negatives = function(published.only = T) {
 n.real.effects.above.minimum = function(published.only = T) {
   
   result = data.frame(Measure = "Discoveries",
-                      Statistic = c("Number", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Number", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   if (published.only) {
@@ -438,7 +438,7 @@ n.real.effects.above.minimum = function(published.only = T) {
   count = nrow(ests %>% filter(isDiscovery))
   
   value = round(count,0)
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -446,8 +446,8 @@ n.real.effects.above.minimum = function(published.only = T) {
 efficiency = function(published.only = T) {
   
   result = data.frame(Measure = "Efficiency",
-                      Statistic = c("Rate", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   if (published.only) {
@@ -468,7 +468,7 @@ efficiency = function(published.only = T) {
   resources = sum(estimates.df$Sample.Size)
   
   value = count / resources
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
 
@@ -476,8 +476,8 @@ efficiency = function(published.only = T) {
 effectiveness = function(published.only = T) {
   
   result = data.frame(Measure = "Effectiveness",
-                      Statistic = c("Rate", "SD", "N", "SEP"),
-                      Value = c(NA, NA, 0, NA),
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
                       Published.Only = published.only)
   
   if (published.only) {
@@ -498,6 +498,6 @@ effectiveness = function(published.only = T) {
   tried = n.real.effects.above.minimum(published.only)
   
   value = count / tried
-  result$Value = c(value, prop.sd(value, nrow(ests)), nrow(ests))
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
