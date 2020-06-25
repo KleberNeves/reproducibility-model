@@ -282,9 +282,9 @@ scientist.action = function(input, scientist.id) {
   ### change the estimated effect size to be just over the threshold
   
   if (xp$p.value > xp$Alpha & runif(1,0,1) < input$bias.level) {
-    # Calc pooled SD, then make the treated mean be control mean + 2 SEM (using pooled SD)
-    sem = xp$Estimated.Pooled.SD #/ sqrt(input$typical.sample.size)
-    xp$Estimated.Effect.Size = qt(xp$Alpha / 2, df = 2 * input$typical.sample.size - 2) * sem * sign(xp$Estimated.Effect.Size)
+    # Calculates the mean difference from the t critical value
+    meandiff = xp$Estimated.Pooled.SD * -qt(xp$Alpha / 2, df = 2 * input$typical.sample.size - 2) * sqrt(2 / input$typical.sample.size)
+    xp$Estimated.Effect.Size = meandiff
     xp$MeanTreated = xp$MeanControl + xp$Estimated.Effect.Size
     xp$p.value = xp$Alpha - 0.01
     xp$Published = T
@@ -300,17 +300,16 @@ scientist.action = function(input, scientist.id) {
     estimates.df <<- rbindlist(list(estimates.df, tmp), use.names = T, fill = T)
   }
   
-  # Deu erro na linha abaixo
+  # Once there was an error below ...
   # [1] "Generating the literature ..."
   # Error in set(estimates.df, i = as.integer(estimates.rowcount), j, xp[[j]]) : 
   #   Supplied 7 items to be assigned to 1 items of column 'Effect.Index'. The RHS length must either be 1 (single values are ok) or match the LHS length exactly. If you wish to 'recycle' the RHS please use rep() explicitly to make this intent clear to readers of your code.
   # In addition: There were 50 or more warnings (use warnings() to see the first 50)
-  # browser()
+
   # Adds new row using data.table::set  
   for (j in 1:ncol(xp)) {
     set(estimates.df, i = as.integer(estimates.rowcount), j, xp[[j]])
   }
-  # browser()
   
   # Esse experimento e todos os outros do mesmo Effect Index agora são replicações, caso esse seja
   estimates.df[Effect.Index == effect.index, Is.Replication := xp.Is.Replication]
