@@ -38,8 +38,6 @@ make.evaluation.tests = function() {
   
   pb = T; df = rbind(df, neg.pred.value(pb))
   pb = F; df = rbind(df, neg.pred.value(pb))
-  
-  df$variable = ""
 
   df
 }
