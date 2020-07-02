@@ -284,7 +284,7 @@ scientist.action = function(input, scientist.id) {
   if (xp$p.value > xp$Alpha & runif(1,0,1) < input$bias.level) {
     # Calculates the mean difference from the t critical value
     meandiff = xp$Estimated.Pooled.SD * -qt(xp$Alpha / 2, df = 2 * input$typical.sample.size - 2) * sqrt(2 / input$typical.sample.size)
-    xp$Estimated.Effect.Size = meandiff
+    xp$Estimated.Effect.Size = meandiff * sign(xp$Estimated.Effect.Size)
     xp$MeanTreated = xp$MeanControl + xp$Estimated.Effect.Size
     xp$p.value = xp$Alpha - 0.01
     xp$Published = T
