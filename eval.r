@@ -136,8 +136,8 @@ typeS.error.rate = function(published.only = T) {
 exaggeration.factor = function(published.only = T) {
   
   result = data.frame(Measure = "Exaggeration Factor",
-                      Statistic = c("Median", "IQR", "SEP", "N"),
-                      Value = c(NA,NA,NA,0),
+                      Statistic = c("Median", "Q25", "Q75", "SEP", "N"),
+                      Value = c(NA,NA,NA,NA,0),
                       Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value < Alpha)
@@ -157,7 +157,8 @@ exaggeration.factor = function(published.only = T) {
     NA)
   
   result$Value = c(median(ests$Mfactor, na.rm = T),
-                   IQR(ests$Mfactor, na.rm = T),
+                   quantile(ests$Mfactor, 0.25, na.rm = T),
+                   quantile(ests$Mfactor, 0.75, na.rm = T),
                    sd(ests$Mfactor, na.rm = T),
                    nrow(ests))
   return (result)
@@ -195,8 +196,8 @@ typeS.error.rate.above.min = function(published.only = T) {
 exaggeration.factor.above.min = function(published.only = T) {
   
   result = data.frame(Measure = "Exaggeration Factor (Effects > Min)",
-                      Statistic = c("Median", "IQR", "SEP", "N"),
-                      Value = c(NA,NA,NA,0),
+                      Statistic = c("Median", "Q25", "Q75", "SEP", "N"),
+                      Value = c(NA,NA,NA,NA,0),
                       Published.Only = published.only)
   
   ests = estimates.df %>% filter(p.value < Alpha, abs(Real.Effect.Size) >= Min.Interesting.Effect)
@@ -216,7 +217,8 @@ exaggeration.factor.above.min = function(published.only = T) {
     NA)
   
   result$Value = c(median(ests$Mfactor, na.rm = T),
-                   IQR(ests$Mfactor, na.rm = T),
+                   quantile(ests$Mfactor, 0.25, na.rm = T),
+                   quantile(ests$Mfactor, 0.75, na.rm = T),
                    sd(ests$Mfactor, na.rm = T),
                    nrow(ests))
   return (result)
