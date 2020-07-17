@@ -30,6 +30,9 @@ make.evaluation.tests = function() {
   pb = T; df = rbind(df, exaggeration.factor.above.min(pb))
   pb = F; df = rbind(df, exaggeration.factor.above.min(pb))
   
+  pb = T; df = rbind(df, discovered.effect.sizes(pb))
+  pb = F; df = rbind(df, discovered.effect.sizes(pb))
+  
   pb = T; df = rbind(df, pos.pred.value(pb))
   pb = F; df = rbind(df, pos.pred.value(pb))
   
@@ -501,5 +504,36 @@ effectiveness = function(published.only = T) {
   
   value = count / tried
   result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
+  return (result)
+}
+
+# DISCOVERED EFFECTS' SIZES
+discovered.effect.sizes = function(published.only = T) {
+  
+  result = data.frame(Measure = "DiscoveredES",
+                      Statistic = c("Median", "Q25", "Q75", "SEP", "N"),
+                      Value = c(NA,NA,NA,NA,0),
+                      Published.Only = published.only)
+  
+  ests = estimates.df %>%
+    filter(p.value < Alpha & abs(Real.Effect.Size) >= Min.Interesting.Effect)
+  
+  if (published.only) {
+    ests = ests %>% filter(Published == T)
+  }
+  
+  if (nrow(ests) == 0) {
+    return (result)
+  }
+  
+  # Size of effects
+  ests$Mfactor = ests$Real.Effect.Size
+  
+  result$Value = c(median(ests$Mfactor, na.rm = T),
+                   quantile(ests$Mfactor, 0.25, na.rm = T),
+                   quantile(ests$Mfactor, 0.75, na.rm = T),
+                   sd(ests$Mfactor, na.rm = T),
+                   nrow(ests))
+  
   return (result)
 }
