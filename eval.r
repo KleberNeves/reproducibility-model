@@ -515,8 +515,7 @@ discovered.effect.sizes = function(published.only = T) {
                       Value = c(NA,NA,NA,NA,0),
                       Published.Only = published.only)
   
-  ests = estimates.df %>%
-    filter(p.value < Alpha & abs(Real.Effect.Size) >= Min.Interesting.Effect)
+  ests = estimates.df %>% filter(p.value < Alpha)
   
   if (published.only) {
     ests = ests %>% filter(Published == T)
@@ -527,7 +526,7 @@ discovered.effect.sizes = function(published.only = T) {
   }
   
   # Size of effects
-  ests$Mfactor = ests$Real.Effect.Size
+  ests$Mfactor = abs(ests$Real.Effect.Size)
   
   result$Value = c(median(ests$Mfactor, na.rm = T),
                    quantile(ests$Mfactor, 0.25, na.rm = T),
