@@ -333,7 +333,7 @@ run.simulation = function(input) {
   feedback.message("Replicating experiments ...")
   
   if (input$calc.repro) {
-    master.rep.df <<- perform.replications(input, rep.power = 0.95, n.reps = 3)
+    replications.df <<- perform.replications(input, rep.power = 0.95, n.reps = 3)
   }
   
   feedback.message("... and ... Finished!", "error")

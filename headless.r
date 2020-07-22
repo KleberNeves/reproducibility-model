@@ -14,6 +14,11 @@ hlrun = function(a.input, saveFilename) {
   fn = paste(tmpdir,"/pars.csv", sep = ""); fs = c(fs, fn)
   write.table(x = param.df, file = fn, sep = ";", row.names = F)
   
+  if (a.input$calc.repro) {
+    fn = paste(tmpdir,"/replications.csv", sep = ""); fs = c(fs, fn)
+    write.table(x = replications.df, file = fn, sep = ";", row.names = F)
+  }
+  
   uldist = data.frame(x = sample.from.dist(a.input$sdA, a.input$weightB,
                                            a.input$meanB, a.input$sdB, k = 100000
   ))

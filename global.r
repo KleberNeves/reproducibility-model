@@ -30,7 +30,7 @@ effects.df = data.frame()
 estimates.df = data.frame()
 eval.df = data.frame()
 param.df = data.frame()
-master.rep.df = data.frame()
+replications.df = data.frame()
 
 dichotomous.input = list(
   sdA = 0,
