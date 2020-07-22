@@ -126,6 +126,14 @@ preset.scenarios = c(
 
 shiny_running = TRUE
 
+sanitize_shiny_input = function (a.input) {
+  if (shiny_running) {
+    return (reactiveValuesToList(a.input))
+  } else {
+    return (a.input)
+  }
+}
+
 # Model code
 source("model.r")
 source("eval.r")

@@ -304,11 +304,7 @@ feedback.message = function(msg, msgtype = "default") {
 
 # Main function, called from the interface to set the whole model running
 run.simulation = function(input) {
-  if (shiny_running) {
-    input = reactiveValuesToList(input)
-  } else {
-    input = input
-  }
+  input = sanitize_shiny_input(input)
   
   evdf = data.frame()
   

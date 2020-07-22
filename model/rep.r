@@ -1,44 +1,41 @@
 # Returns a data frame with the results of replications
-perform.replications = function(input, rep.power, n.reps = 3, positive.only = T) {
-  # rep.power = -1 means "use the same sample size as the original"
-  
+perform.replications = function(input, rep.power = -1, n.reps = 3) {
   # Filters the published estimates
-  rep.ests = estimates.df[Published == T]
+  rep.ests = estimates.df[Published == T & p.value <= Alpha]
   
-  if (positive.only) {
-    rep.ests = rep.ests[p.value < Alpha]
-  }
-  
-  rep.ests = rep.ests[!duplicated(Effect.Index)]
-  
-  # Calculate N for the desired power according to the original estimate (not the real effect)
+  # Calculate N for the desired power for the original estimate (not the real effect)
   if (rep.power > 0) {
     calc.n = function (eff, sd, wanted.pwr, alpha) {
-      pw = tryCatch(
-        { power.t.test(delta = eff, sd = sd, sig.level = alpha, power = wanted.pwr)$n },
-        error = function(e) { 2 # Error means N < 2, i.e. very large effect compared to the SE
-        })
+      pw = tryCatch({
+        power.t.test(delta = eff, sd = sd, sig.level = alpha, power = wanted.pwr)$n
+      }, error = function(e) {
+        # Error means N < 2, i.e. very large effect compared to the SEM
+        2
+      })
       return (ceiling(pw))
     }
-    rep.ests$rep.sample.size = mapply(calc.n, rep.ests$Estimated.Effect.Size, rep.ests$Estimated.Pooled.SD, rep.power, input$alpha.threshold)
+    
+    rep.ests$rep.sample.size = mapply(calc.n,
+                                      rep.ests$Estimated.Effect.Size,
+                                      rep.ests$Estimated.Pooled.SD,
+                                      rep.power, input$alpha.threshold)
   } else {
+    # Setting rep.power = -1 means: "use the same sample size as the original"
     rep.ests$rep.sample.size = input$typical.sample.size
-  }
-  
-  # Receives an effect index, and performs an experiment, adding it to the rep.df
-  replicate.exp = function(effect.index, rep.df) {
-    if (shiny_running) {
-      rep.input = reactiveValuesToList(input)
-    } else {
-      rep.input = input
-    }
-    rep.input$typical.sample.size = rep.ests[Effect.Index == effect.index, rep.sample.size]
-    xp = perform.experiment(effect.index, rep.input, -1)
   }
   
   rep.ests$Original.Effect.Size = rep.ests$Estimated.Effect.Size
   rep.ests$Original.p.value = rep.ests$p.value
   
+  # Function to perform a single replication:
+  #    receives an effect index, and performs an experiment, adding it to the rep.df
+  replicate.exp = function(effect.index, rep.df) {
+    rep.input = sanitize_shiny_input(input)
+    rep.input$typical.sample.size = rep.ests[Effect.Index == effect.index, rep.sample.size]
+    xp = perform.experiment(effect.index, rep.input, -1)
+  }
+  
+  # Runs a number of replications for each effect
   rep.df = lapply(rep(rep.ests$Effect.Index, n.reps), replicate.exp, rep.df)
   rep.df = rbindlist(rep.df)
   rep.df = merge(rep.df, rep.ests[,.(Effect.Index, rep.sample.size, Original.Effect.Size, Original.p.value)], by = "Effect.Index")
