@@ -27,7 +27,6 @@ setup.model = function(input) {
     Replication.Chance = numeric(m),
     Positive.Bias = numeric(m),
     Min.Interesting.Effect = numeric(m),
-    Scientist.Index = numeric(m),
     Biased = logical(m),
     Published = logical(m),
     Is.Replication = logical(m)
@@ -204,7 +203,7 @@ sim.end.tracking = function(criteria, alpha) {
 
 # Function to simulate the whole experimental procedure, from data generation to analysis and publication
 # Calls all the others functions; works as an outline of the main process in the model
-perform.experiment = function(effect.index, input, scientist.id) {
+perform.experiment = function(effect.index, input) {
   
   exp.effect = effects.df[Effect.Index == effect.index,]
   
@@ -250,7 +249,6 @@ perform.experiment = function(effect.index, input, scientist.id) {
     Positive.Bias = input$neg.incentive,
     Min.Interesting.Effect = input$min.effect.of.interest,
     
-    Scientist.Index = scientist.id,
     Biased = F,
     Published = published(test$p.value, input$alpha.threshold, input$neg.incentive)
   )
@@ -259,7 +257,7 @@ perform.experiment = function(effect.index, input, scientist.id) {
 }
 
 # Executes the simulated scientist behavior
-scientist.action = function(input, scientist.id) {
+scientist.action = function(input) {
   # If simulation ended, return
   if (reached.sim.end(input$sim.end.value, input$how.sim.ends, input$alpha.threshold)) {
     return (1)
@@ -275,7 +273,7 @@ scientist.action = function(input, scientist.id) {
   }
   
   # Performs the experiment
-  xp = perform.experiment(effect.index, input, scientist.id)
+  xp = perform.experiment(effect.index, input)
   
   # Bias
   ### With a given probability, if the result is not significant,
@@ -317,18 +315,6 @@ scientist.action = function(input, scientist.id) {
   return (0)
 }
 
-# Runs actions for each scientist (might be obsolete/unnecessary)
-run.iteration = function(input) {
-  for (i in 1:input$n.scientists) {
-    x = scientist.action(input, i)
-    if (x != 0) {
-      return (x)
-    }
-  }
-  
-  return (0)
-}
-
 feedback.message = function(msg, msgtype = "default") {
   print(msg); if (shiny_running) { showNotification(msg, type = msgtype) }
 }
@@ -341,8 +327,6 @@ run.simulation = function(input) {
     input = input
   }
   
-  input$n.scientists = 1
-  
   evdf = data.frame()
   
   input = setup.model(input)
@@ -352,7 +336,7 @@ run.simulation = function(input) {
   it = 0
   r25 = F; r50 = F; r75 = F
   while (it != 1) {
-    it = run.iteration(input)
+    it = scientist.action(input)
     
     # Progress feedback
     progress = ceiling(100 * sim.end.tracking(input$how.sim.ends, input$alpha.threshold) / input$sim.end.value)
