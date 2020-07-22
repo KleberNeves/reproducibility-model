@@ -1,7 +1,10 @@
 # Returns a data frame with the results of replications
-perform.replications = function(input, rep.power = -1, n.reps = 10) {
+perform.replications = function(input, rep.power = -1) {
   # Filters the published estimates
   rep.ests = estimates.df[Published == T & p.value <= Alpha]
+  
+  # Number of replications per experiment
+  n.reps = 3
   
   # Calculate N for the desired power for the original estimate (not the real effect)
   if (rep.power > 0) {
@@ -29,35 +32,47 @@ perform.replications = function(input, rep.power = -1, n.reps = 10) {
   
   # Function to perform a single replication:
   #    receives an effect index, and performs an experiment, adding it to the rep.df
-  replicate.exp = function(effect.index, rep.df) {
+  replicate.exp = function(effect.index, rep.df, separate.reps) {
     rep.input = sanitize_shiny_input(input)
     rep.input$typical.sample.size = rep.ests[Effect.Index == effect.index, rep.sample.size]
-    xp = perform.experiment(effect.index, rep.input, -1)
+    
+    # Runs separate repro repeats and saves that information so that we can estimate uncertainty later
+    exps = lapply(1:separate.reps, function (rep_i, ...) {
+      exp = perform.experiment(...)
+      exp$RepSet = rep_i
+    }, effect.index, rep.input, -1)
+    
+    rbindlist(exps)
   }
   
-  # Runs a number of replications for each effect
-  rep.df = lapply(rep(rep.ests$Effect.Index, n.reps), replicate.exp, rep.df)
+  # Runs a number of replications for each effect 
+  rep.df = lapply(
+    rep(rep.ests$Effect.Index, n.reps),
+    replicate.exp, rep.df, separate.reps = input$repro.repeats)
+  
   rep.df = rbindlist(rep.df)
-  rep.df = merge(rep.df, rep.ests[,.(Effect.Index, rep.sample.size, Original.Effect.Size, Original.p.value)], by = "Effect.Index")
+  rep.df = merge(rep.df,
+                 rep.ests[,.(Effect.Index, RepSet, rep.sample.size, Original.Effect.Size, Original.p.value)],
+                 by = "Effect.Index")
   
   return (rep.df)
 }
 
 # Computes many types of reproducibility measures from a set of replications
-reproducibility.rate = function(master.rep.df, types = c(), input, n.sample = -1) {
+reproducibility.rate = function(types = c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS-PAR", "VOTE-SSS-NPAR", "Orig-in-MA-CI", "MA-in-Orig-CI", "Orig-in-CI-3"), input, n.sample = -1) {
   # n.sample is the number of experiments selected to evaluate (-1 means all experiments)
   
-  n.experiments = ifelse(n.sample > 0, n.sample, nrow(master.rep.df)/3)
+  n.experiments = ifelse(n.sample > 0, n.sample, nrow(replications.df)/3)
   
   # Pick the sample of experiments: sample is alawys picked in order of the effect index, to assure that every measure will be calculated on the same sample
-  if (length(unique(master.rep.df$Effect.Index)) < n.experiments) {
+  if (length(unique(replications.df$Effect.Index)) < n.experiments) {
     cat("Not enough experiments to reproduce!")
     return (-1)
   }
   
-  # eff.sample = sort(unique(master.rep.df$Effect.Index))[1:n.experiments]
-  eff.sample = sample(x = unique(master.rep.df$Effect.Index), size = n.experiments, replace = F)
-  rep.df = master.rep.df[Effect.Index %in% eff.sample]
+  # eff.sample = sort(unique(replications.df$Effect.Index))[1:n.experiments]
+  eff.sample = sample(x = unique(replications.df$Effect.Index), size = n.experiments, replace = F)
+  rep.df = replications.df[Effect.Index %in% eff.sample]
   rep.ests = estimates.df[Effect.Index %in% eff.sample]
   
   rep.ests = merge(rep.ests, rep.df %>% select("Effect.Index","rep.sample.size"), by = "Effect.Index")
