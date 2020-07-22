@@ -68,22 +68,46 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
     target.df = rates.df[Effect.Index %in% eff.sample]
   }
   
-  # Summarises replication results (median, Q25, Q75)
+  # Summarises replication results (mean, min, max)
   
   # For each criteria
-  # overall replication rate
-  d = target.df$
-  data.frame(Measure = "Reproducibility Rate", Type = type,
-             Statistic = "Median", Value = 0)
-  # accuracy
-  # recall
-  # F1
+  
+  cast.df = target.df %>% filter(!is.na(Type)) %>%
+    dcast(Type + LongType + RepSet ~ Measure, value.var = "Value")
+  
+  # overall replication rate, PPV/precision, recall
+  rep.rates = target.df[, c("ReproRate", "Specificity", "Sensitivity") :=
+                          list(mean(Success), mean(TN / (TN + FP)), mean(TP / (TP + FN))),
+                        by = .(RepSet, Type)]
+  
+  
+  # PPV of the literature (only of the target)
+  cast.df = target.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
+    dcast(RepSet ~ Measure, value.var = "Value")
+  other.rates = cast.df[, "PPV" := mean(Is.Real), by = .(RepSet)]
+  
+  # PPV of the literature (whole literature)
+  cast.df = rates.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
+    dcast(RepSet ~ Measure, value.var = "Value")
+  other.rates = rbind(other.rates, cast.df[, "PPV" := mean(Is.Real), by = .(RepSet)])
   
   # General (criteria-independent)
-  # PPV
   # signal error rate
   # exaggeration
+  error.rates = cast.df[, c("Exaggeration (MA x Original)", "Exaggeration (MA x Real)",
+                            "Signal Error (MA x Original)", "Signal Error (MA x Real)") :=
+                            list(median(`Exaggeration (MA x Original)`),
+                                 median(`Exaggeration (MA x Real)`),
+                                 mean(`Signal Error (MA x Original)`),
+                                 mean(`Signal Error (MA x Real)`)),
+                          by = .(RepSet)]
   
+  # Bind and return
+  other.rates = rbind(error.rates, other.rates)
+  other.rates$Type = NA
+  other.rates$LongType = NA
+  
+  return (rbind(rep.rates, other.rates))
 }
 
 # For each experiment, calculates reproducibility measures
@@ -109,17 +133,23 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   
   # By criteria
   # FP (reproduced but is not real)
-  result$FP = result$Success & abs(original.estimate) < min.effect.of.interest
+  result$FP = result$Success & abs(real.effect) < min.effect.of.interest
   # FN (didn't reproduce but is real)
-  result$FN = !result$Success & abs(original.estimate) >= min.effect.of.interest
+  result$FN = !result$Success & abs(real.effect) >= min.effect.of.interest
   # TP (reproduced and is real)
-  result$TP = result$Success & abs(original.estimate) >= min.effect.of.interest
+  result$TP = result$Success & abs(real.effect) >= min.effect.of.interest
   # TN (didn't reproduce and is not real)
-  result$TN = !result$Success & abs(original.estimate) < min.effect.of.interest
+  result$TN = !result$Success & abs(real.effect) < min.effect.of.interest
   
   # Cast to long format
   result = melt(result, id.vars = c("Type", "LongType", "Original.Effect.Size"))
   colnames(result) = c("Type", "LongType", "Original.Effect.Size", "Measure", "Value")
+  
+  # Real Effect?
+  result = rbind(
+    result, data.frame(Type = NA, LongType = NA,
+                       Measure = "Is.Real",
+                       Value = abs(real.effect) >= min.effect.of.interest))
   
   # Exaggeration (MA x Original)
   result = rbind(
