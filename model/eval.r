@@ -49,7 +49,7 @@ make.evaluation.tests = function() {
 # General function that calculates all rates, in all cases
 make.rep.evaluation.tests = function(min.effect) {
   
-  rates.df = calc.rep.measures(replications.df)
+  rates.df = calc.rep.measures(min.effect.of.interest = min.effect)
   
   df = data.frame()
   

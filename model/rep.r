@@ -1,3 +1,6 @@
+library(data.table)
+library(metafor)
+
 # Returns a data frame with the results of replications
 perform.replications = function(input, rep.power = -1) {
   # Filters the published estimates
@@ -37,10 +40,11 @@ perform.replications = function(input, rep.power = -1) {
     rep.input$typical.sample.size = rep.ests[Effect.Index == effect.index, rep.sample.size]
     
     # Runs separate repro repeats and saves that information so that we can estimate uncertainty later
-    exps = lapply(1:separate.reps, function (rep_i, ...) {
-      exp = perform.experiment(...)
+    exps = lapply(1:separate.reps, function (rep_i, effect.index, rep.input) {
+      exp = perform.experiment(effect.index, rep.input)
       exp$RepSet = rep_i
-    }, effect.index, rep.input, -1)
+      exp
+    }, effect.index, rep.input)
     
     rbindlist(exps)
   }
@@ -49,12 +53,14 @@ perform.replications = function(input, rep.power = -1) {
   rep.df = lapply(
     rep(rep.ests$Effect.Index, n.reps),
     replicate.exp, rep.df, separate.reps = input$repro.repeats)
-  
   rep.df = rbindlist(rep.df)
+  
   rep.df = merge(rep.df,
-                 rep.ests[, .(Effect.Index, RepSet, rep.sample.size,
+                 rep.ests[, .(Effect.Index, rep.sample.size,
                               Original.Effect.Size, CI.low, CI.high)],
                  by = "Effect.Index")
+  
+  setnames(rep.df, c("CI.low.y","CI.high.y"), c("Original.CI.low", "Original.CI.high"))
   
   return (rep.df)
 }
@@ -62,72 +68,87 @@ perform.replications = function(input, rep.power = -1) {
 # Goes over the replication data frame with evaluations and calculates overall summaries for
 #   each of the measures present there.
 reproducibility.rate = function (rates.df, n.sample = -1) {
+
   # Get a sample if required
   if (n.sample > 0) {
     eff.sample = sample(x = unique(rates.df$Effect.Index), size = n.sample, replace = F)
     target.df = rates.df[Effect.Index %in% eff.sample]
+  } else {
+    target.df = rates.df
   }
   
   # Summarises replication results (mean, min, max)
   
   # For each criteria
-  
   cast.df = target.df %>% filter(!is.na(Type)) %>%
-    dcast(Type + LongType + RepSet ~ Measure, value.var = "Value")
+    dcast(Effect.Index + Type + LongType + RepSet ~ Measure, value.var = "Value")
+  sapply(5:9, function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
   
   # overall replication rate, PPV/precision, recall
-  rep.rates = target.df[, c("ReproRate", "Specificity", "Sensitivity") :=
-                          list(mean(Success), mean(TN / (TN + FP)), mean(TP / (TP + FN))),
-                        by = .(RepSet, Type)]
+  rep.rates = cast.df[, .(ReproRate = mean(Success),
+                          Specificity = sum(TN) / (sum(TN) + sum(FP)),
+                          Sensitivity = sum(TP) / (sum(TP) + sum(FN))),
+                        by = .(RepSet, Type, LongType)]
   
-  
-  # PPV of the literature (only of the target)
+  # Prevalence of the literature (only of the target)
   cast.df = target.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
-    dcast(RepSet ~ Measure, value.var = "Value")
-  other.rates = cast.df[, "PPV" := mean(Is.Real), by = .(RepSet)]
+    dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
+  cast.df$Is.Real = as.logical(cast.df$Is.Real)
+  other.rates = cast.df[, .(Prev_Sample = mean(Is.Real)), by = .(RepSet)]
   
-  # PPV of the literature (whole literature)
+  # Prevalence of the literature (whole literature)
   cast.df = rates.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
-    dcast(RepSet ~ Measure, value.var = "Value")
-  other.rates = rbind(other.rates, cast.df[, "PPV" := mean(Is.Real), by = .(RepSet)])
+    dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
+  cast.df$Is.Real = as.logical(cast.df$Is.Real)
+  other.rates.whole = cast.df[, .(Prev_Whole = mean(Is.Real)), by = .(RepSet)]
   
   # General (criteria-independent)
-  # signal error rate
-  # exaggeration
-  error.rates = cast.df[, c("Exaggeration (MA x Original)", "Exaggeration (MA x Real)",
-                            "Signal Error (MA x Original)", "Signal Error (MA x Real)") :=
-                            list(median(`Exaggeration (MA x Original)`),
-                                 median(`Exaggeration (MA x Real)`),
-                                 mean(`Signal Error (MA x Original)`),
-                                 mean(`Signal Error (MA x Real)`)),
-                          by = .(RepSet)]
+  cast.df = target.df %>% filter(is.na(Type) & Measure != "Is.Real") %>%
+    select(-Type, -LongType) %>%
+    dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
+  sapply(3:4, function(x) { cast.df[[x]] <<- as.numeric(cast.df[[x]]) })
+  sapply(5:6, function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
   
-  # Bind and return
-  other.rates = rbind(error.rates, other.rates)
+  # exaggeration and signal error rate
+  error.rates = cast.df[,
+    .(Exaggeration_MA_x_Original = median(`Exaggeration (MA x Original)`, na.rm = T),
+      Exaggeration_MA_x_Real = median(`Exaggeration (MA x Real)`, na.rm = T),
+      Signal_Error_MA_x_Original = mean(`Signal Error (MA x Original)`, na.rm = T),
+      Signal_Error_MA_x_Real = mean(`Signal Error (MA x Real)`, na.rm = T)),
+    by = .(RepSet)]
+  
+  # browser()
+  # Make long, bind and return
+  error.rates = melt(error.rates, id.vars = "RepSet")
+  other.rates = melt(other.rates, id.vars = "RepSet")
+  other.rates.whole = melt(other.rates.whole, id.vars = "RepSet")
+  rep.rates = melt(rep.rates, id.vars = c("RepSet", "Type", "LongType"))
+  
+  other.rates = rbind(error.rates, other.rates, other.rates.whole)
   other.rates$Type = NA
   other.rates$LongType = NA
   
-  return (rbind(rep.rates, other.rates))
+  final.rates = rbind(rep.rates, other.rates)
+  final.rates$N = ifelse(n.sample == -1, "All", as.character(n.sample))
+  return (final.rates)
 }
 
 # For each experiment, calculates reproducibility measures
-calc.rep.measures = function(types = c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS-PAR", "VOTE-SSS-NPAR", "Orig-in-MA-CI", "MA-in-Orig-CI", "Orig-in-CI-3"), min.effect.of.interest) {
-    
+calc.rep.measures = function(types = c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS", "Orig-in-MA-CI", "MA-in-Orig-CI"), min.effect.of.interest) {
   # For each set of experiments, calculates each reproducibility measure in types
-  rates.df = target.df[, evaluate.exp.rep(c(.BY, .SD), types = types,
-                         min.effect.of.interest = min.effect.of.interest),
-    by = .(Effect.Index, RepSet)]
-  
+  rates.df = replications.df[, evaluate.exp.rep(.SD, types = types,
+                                  min.effect.of.interest = min.effect.of.interest),
+                             by = .(Effect.Index, RepSet)]
   return (rates.df)
 }
 
 # Computes many types of reproducibility measures from a set of replications
 evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   
-  MA = rep.exps[,run.ma(MeanControl, SDControl, Sample.Size,
-                        MeanTreated, SDTreated, Sample.Size)]
+  MA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
+                             MeanTreated, SDTreated, Sample.Size))
   
-  result = ldply(types, reproducibility.success(rep.exps, MA, type))
+  result = ldply(types, reproducibility.success, rep.exps = rep.exps, MA = MA)
   original.estimate = rep.exps$Original.Effect.Size[1]
   real.effect = rep.exps$Real.Effect.Size[1]
   
@@ -141,9 +162,10 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   # TN (didn't reproduce and is not real)
   result$TN = !result$Success & abs(real.effect) < min.effect.of.interest
   
-  # Cast to long format
-  result = melt(result, id.vars = c("Type", "LongType", "Original.Effect.Size"))
-  colnames(result) = c("Type", "LongType", "Original.Effect.Size", "Measure", "Value")
+  # Cast to long format (seems convoluted, there should be a better way)
+  result = melt(result, id.vars = c("Type", "LongType"))
+  colnames(result) = c("Type", "LongType", "Measure", "Value")
+  result$Value = as.character(result$Value)
   
   # Real Effect?
   result = rbind(
@@ -167,58 +189,52 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   result = rbind(
     result, data.frame(Type = NA, LongType = NA,
                        Measure = "Signal Error (MA x Original)",
-                       Value = MA$m$beta[[1]] / original.estimate <= 0))
+                       Value = MA$m$beta[[1]] / original.estimate <= 0 &
+                         MA$m$pval < 0.05))
   # Signal (MA x Real)
   result = rbind(
     result, data.frame(Type = NA, LongType = NA,
                        Measure = "Signal Error (MA x Real)",
-                       Value = MA$m$beta[[1]] / real.effect <= 0))
-  
-  result$EffectIndex = rep.exps$EffectIndex[1]
-  result$RepSet = rep.exps$RepSet[1]
-  
+                       Value = MA$m$beta[[1]] / real.effect <= 0 &
+                         MA$m$pval < 0.05))
   result
 }
 
 # Computes success or failure in a replication according to a give criterium
-reproducibility.success = function (rep.exps, MA, type) {
+reproducibility.success = function (type, rep.exps, MA) {
+  
   if (type == "Orig-in-MA-PI") {
     longtype = "original estimate is within the PI of the meta analysis"
     value = rep.exps$Original.Effect.Size[1] > MA$pred$cr.lb &
       rep.exps$Original.Effect.Size[1] < MA$pred$cr.ub
-  }
-  
-  if (type == "Orig-in-MA-CI") {
+  } else if (type == "Orig-in-MA-CI") {
     longtype = "original estimate is within the CI of the meta analysis"
     value = rep.exps$Original.Effect.Size[1] > MA$pred$ci.lb &
       rep.exps$Original.Effect.Size[1] < MA$pred$ci.ub
-  }
-  
-  if (type == "MA-SSS") {
+  } else if (type == "MA-SSS") {
     longtype = "meta analysis is significant and in the same sense as the original"
     value = rep.exps$Original.Effect.Size[1] / MA$m$beta[[1]] > 0 & MA$m$pval < 0.05
-  }
-  
-  if (type == "VOTE-SSS") {
+  } else if (type == "VOTE-SSS") {
     longtype = "majority of individual replications are significant and in the same sense"
     value = mean(rep.exps$p.value < 0.05) >= 0.5
-  }
-  
-  if (type == "MA-in-Orig-CI") {
+  } else if (type == "MA-in-Orig-CI") {
     longtype = "meta analysis point estimate is within the CI of the original"
-    value = MA$beta[[1]] > rep.exps$CI.low[1] & MA$beta[[1]] < rep.exps$CI.high[1]
+    value = MA$m$beta[[1]] > rep.exps$Original.CI.low[1] & MA$m$beta[[1]] < rep.exps$Original.CI.high[1]
+  } else {
+    longtype = "NOT FOUND"
+    value = NA
   }
   
-  data.frame(
+  return (data.frame(
     Type = type,
     LongType = longtype,
     Success = value
-  )
+  ))
+
 }
 
 # Runs and returns a meta analysis given the means, SDs and Ns
 run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated, n_treated) {
-  
   ess = escalc(measure = "MD", m1i = as.numeric(mean_treated), 
                m2i = as.numeric(mean_control), sd1i = as.numeric(sd_treated), 
                sd2i = as.numeric(sd_control), n1i = as.numeric(n_treated), 
@@ -227,11 +243,9 @@ run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated,
     m = rma(yi = yi, vi = vi, data = ess, measure = "MD", method = "REML",
             control = list(maxiter=1000))
     pred = predict.rma(m, level = 0.95, digits = 3)
-    # PI = list(PI.lower = pred$cr.lb, PI.upper = pred$cr.ub, beta = m$beta[[1]])
-    # signif = list(eff = pred$pred,  se = pred$se, zval = m$zval, signif = abs(pred$pred) - 1.96 * pred$se > 0)
-    # beta = list(beta = m$beta[[1]])
-    return (pred, m)
+    return (list(pred = pred, m = m))
   }, error = function(e) {
+    message(e)
     return (NULL)
   })
 }

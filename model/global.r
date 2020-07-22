@@ -134,7 +134,10 @@ sanitize_shiny_input = function (a.input) {
   }
 }
 
-# Model code
+# Source model code
+wd = getwd()
+setwd(dirname(parent.frame(2)$ofile))
 source("model.r")
 source("eval.r")
 source("rep.r")
+setwd(wd)

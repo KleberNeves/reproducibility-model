@@ -3,7 +3,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 source("helper.r")
 
 # Actually getting the data
-data_dir = "../../../Results/0720_2nd_Part_Test/"
+data_dir = "/home/kleber/Dropbox/Scientific Research/Projects/Modelo Reprodutibilidade/Results/0720_2nd_Part_Test/"
 fulldata = get.figure.data.rep(data_dir)
 figdata = fulldata$eval
 

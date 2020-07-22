@@ -318,7 +318,7 @@ run.simulation = function(input) {
     it = scientist.action(input)
     
     # Progress feedback
-    progress = ceiling(100 * sim.end.tracking(input$how.sim.ends, input$alpha.threshold) / input$sim.end.value)
+    progress = round(100 * sim.end.tracking(input$how.sim.ends, input$alpha.threshold) / input$sim.end.value)
     
     if (progress %% 25 == 0) {
       feedback.message(glue("{progress}% done ..."))
@@ -329,7 +329,7 @@ run.simulation = function(input) {
   feedback.message("Replicating experiments ...")
   
   if (input$calc.repro) {
-    replications.df <<- perform.replications(input, rep.power = 0.95, n.reps = 3)
+    replications.df <<- perform.replications(input, rep.power = 0.95)
   }
   
   feedback.message("... and ... Finished!", "error")

@@ -8,7 +8,7 @@ hlrun = function(a.input, saveFilename) {
   fs = c()
   tmpdir = tempdir()
   fn = paste(tmpdir,"/estimates.csv", sep = ""); fs = c(fs, fn)
-  write.table(x = presynthesis.df, file = fn, sep = ";", row.names = F)
+  write.table(x = estimates.df, file = fn, sep = ";", row.names = F)
   fn = paste(tmpdir,"/eval.csv", sep = ""); fs = c(fs, fn)
   write.table(x = eval.df, file = fn, sep = ";", row.names = F)
   fn = paste(tmpdir,"/pars.csv", sep = ""); fs = c(fs, fn)
