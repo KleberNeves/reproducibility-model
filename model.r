@@ -24,12 +24,10 @@ setup.model = function(input) {
     Alpha = numeric(m),
     How.It.Ends = character(m),
     End.Value = numeric(m),
-    Replication.Chance = numeric(m),
     Positive.Bias = numeric(m),
     Min.Interesting.Effect = numeric(m),
     Biased = logical(m),
-    Published = logical(m),
-    Is.Replication = logical(m)
+    Published = logical(m)
   )
   
   estimates.rowcount <<- 0
@@ -172,11 +170,6 @@ statistical.test = function(exp.data, alpha) {
   return (m)
 }
 
-# Returns whether or not to pick a new or published effect, depending on the parameter for replication incentive
-is.replication = function(rep.chance) {
-  return (runif(1,0,1) < rep.chance)
-}
-
 # Returns whether or not it is published, based on result and publication bias parameters
 published = function(p.value, Alpha, negative.bias) {
   return (p.value <= Alpha | runif(1,0,1) < negative.bias)
@@ -245,7 +238,6 @@ perform.experiment = function(effect.index, input) {
     Alpha = input$alpha.threshold,
     How.It.Ends = input$how.sim.ends,
     End.Value = input$sim.end.value,
-    Replication.Chance = input$rep.incentive,
     Positive.Bias = input$neg.incentive,
     Min.Interesting.Effect = input$min.effect.of.interest,
     
@@ -263,15 +255,9 @@ scientist.action = function(input) {
     return (1)
   }
   
-  # Define whether it will be a replication or an original effect
-  if (nrow(estimates.df %>% filter(Published)) > 0 & is.replication(input$rep.incentive)) {
-    effect.index = pick.published.effect()
-    xp.Is.Replication = T
-  } else {
+  # Picks the effect size to be investigated
     effect.index = generate.effect.size(input$sdA, input$weightB, input$meanB, input$sdB)
-    xp.Is.Replication = F
-  }
-  
+
   # Performs the experiment
   xp = perform.experiment(effect.index, input)
   
@@ -308,9 +294,6 @@ scientist.action = function(input) {
   for (j in 1:ncol(xp)) {
     set(estimates.df, i = as.integer(estimates.rowcount), j, xp[[j]])
   }
-  
-  # Esse experimento e todos os outros do mesmo Effect Index agora são replicações, caso esse seja
-  estimates.df[Effect.Index == effect.index, Is.Replication := xp.Is.Replication]
 
   return (0)
 }
@@ -345,10 +328,6 @@ run.simulation = function(input) {
       feedback.message(glue("{progress}% done ..."))
     }
   }
-  
-  # Save the presynthesis results in another dataframe before synthesizing
-  presynthesis.df <<- estimates.df[, .SD[1:estimates.rowcount]]
-  estimates.df <<- synthesize(presynthesis.df)
 
   # Performs replications
   feedback.message("Replicating experiments ...")
@@ -359,35 +338,6 @@ run.simulation = function(input) {
   
   feedback.message("... and ... Finished!", "error")
 }
-
-# Synthesizes the literature, performing meta analysis of replications of the same effect when appropriate
-synthesize = function(raw.df) {
-  
-  make.one.synthesis = function (ADT) {
-    m = run.ma(ADT$MeanControl, ADT$SDControl, ADT$Sample.Size, ADT$MeanTreated, ADT$SDTreated, ADT$Sample.Size, what = "RMA")
-    
-    list(
-      Estimated.Effect.Size = m$beta[[1]],
-      p.value = m$pval,
-      Published = T,#m$pval < ADT$Alpha,
-      Biased = F,
-      Is.Replication = F,
-      Sample.Size = sum(ADT$Sample.Size),
-      N.Studies = nrow(ADT)
-    )
-  }
-  
-  raw.df$N.Studies = 1L
-  syn.df = raw.df[Is.Replication == T,
-                  c("Estimated.Effect.Size","p.value","Published","Biased","Is.Replication","Sample.Size","N.Studies") := make.one.synthesis(.SD),
-                  by = Effect.Index]
-  
-  syn.df = syn.df[!duplicated(Effect.Index)]
-  syn.df = syn.df %>% select(-MeanControl, -SDControl, -MeanTreated, -SDTreated)
-  
-  return (syn.df)
-}
-
 
 # Helper functions for areas under curves
 area.under.tails = function(pfunction, params, threshold) {
