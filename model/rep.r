@@ -53,7 +53,7 @@ perform.replications = function(input, rep.power = -1) {
   rep.df = rbindlist(rep.df)
   rep.df = merge(rep.df,
                  rep.ests[, .(Effect.Index, RepSet, rep.sample.size,
-                              Original.Effect.Size, Real.Effect.Size)],
+                              Original.Effect.Size, CI.low, CI.high)],
                  by = "Effect.Index")
   
   return (rep.df)
@@ -83,13 +83,33 @@ calc.rep.measures = function(types = c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS-PAR"
   return (rates.df)
 }
 
+# Computes success or failure in a replication according to a give criterium
 reproducibility.success = function (rep.exps, MA, type) {
-  # c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS-PAR", "VOTE-SSS-NPAR", "Orig-in-MA-CI", "MA-in-Orig-CI", "Orig-in-CI-3")
-  
   if (type == "Orig-in-MA-PI") {
     longtype = "original estimate is within the PI of the meta analysis"
     value = rep.exps$Original.Effect.Size[1] > MA$pred$cr.lb &
       rep.exps$Original.Effect.Size[1] < MA$pred$cr.ub
+  }
+  
+  if (type == "Orig-in-MA-CI") {
+    longtype = "original estimate is within the CI of the meta analysis"
+    value = rep.exps$Original.Effect.Size[1] > MA$pred$ci.lb &
+      rep.exps$Original.Effect.Size[1] < MA$pred$ci.ub
+  }
+  
+  if (type == "MA-SSS") {
+    longtype = "meta analysis is significant and in the same sense as the original"
+    value = rep.exps$Original.Effect.Size[1] / MA$m$beta[[1]] > 0 & MA$m$pval < 0.05
+  }
+  
+  if (type == "VOTE-SSS") {
+    longtype = "majority of individual replications are significant and in the same sense"
+    value = mean(rep.exps$p.value < 0.05) >= 0.5
+  }
+  
+  if (type == "MA-in-Orig-CI") {
+    longtype = "meta analysis point estimate is within the CI of the original"
+    value = MA$beta[[1]] > rep.exps$CI.low[1] & MA$beta[[1]] < rep.exps$CI.high[1]
   }
   
   data.frame(
