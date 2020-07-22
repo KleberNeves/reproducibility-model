@@ -47,11 +47,16 @@ make.evaluation.tests = function() {
 
 # Measures to evaluate the corpus of estimates of effect sizes
 # General function that calculates all rates, in all cases
-make.rep.evaluation.tests = function() {
+make.rep.evaluation.tests = function(min.effect) {
+  
+  rates.df = calc.rep.measures(replications.df)
+  
   df = data.frame()
   
-  df = rbind(df, )
+  df = rbind(df, reproducibility.rate(rates.df, n.sample = -1))
+  df = rbind(df, reproducibility.rate(rates.df, n.sample = 20))
 
+  df
 }
 
 prop.sep = function (p, n) {

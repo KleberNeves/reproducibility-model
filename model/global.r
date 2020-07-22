@@ -26,11 +26,11 @@ possible.outcomes = c(
   "Reproducibility Rate (SSS) All Papers"
 )
 
-effects.df = data.frame()
-estimates.df = data.frame()
+effects.df = data.table()
+estimates.df = data.table()
 eval.df = data.frame()
 param.df = data.frame()
-replications.df = data.frame()
+replications.df = data.table()
 
 dichotomous.input = list(
   sdA = 0,

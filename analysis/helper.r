@@ -39,7 +39,7 @@ get.data.from.zip.rep = function(zipfile) {
   tryCatch({
     replications.df = read.table(
       file = paste(tmpdir, "/replications.csv", sep = ""), sep = ";", stringsAsFactors = F, header = T)
-    rep.eval.df = make.rep.evaluation.tests()
+    rep.eval.df = make.rep.evaluation.tests(param.df$min.effect.of.interest)
     return (list(eval.df = d, rep.eval.df = rep.eval.df))
   }, error = function (e) {
     print("No reproducibility data.")
