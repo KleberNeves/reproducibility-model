@@ -36,5 +36,13 @@ get.data.from.zip.rep = function(zipfile) {
   
   d = cbind(param.df, eval.df)
   
-  d
+  tryCatch({
+    replications.df = read.table(
+      file = paste(tmpdir, "/replications.csv", sep = ""), sep = ";", stringsAsFactors = F, header = T)
+    rep.eval.df = make.rep.evaluation.tests()
+    return (list(eval.df = d, rep.eval.df = rep.eval.df))
+  }, error = function (e) {
+    print("No reproducibility data.")
+    return (d)
+  })
 }

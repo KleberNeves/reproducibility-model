@@ -1,5 +1,5 @@
 # Returns a data frame with the results of replications
-perform.replications = function(input, rep.power = -1, n.reps = 3) {
+perform.replications = function(input, rep.power = -1, n.reps = 10) {
   # Filters the published estimates
   rep.ests = estimates.df[Published == T & p.value <= Alpha]
   
@@ -44,11 +44,7 @@ perform.replications = function(input, rep.power = -1, n.reps = 3) {
 }
 
 # Computes many types of reproducibility measures from a set of replications
-reproducibility.rate = function(master.rep.df, type, input, n.sample = -1, measure.name = "", rep_i = 0) {
-  
-  # type is one of:
-  # "BRI" (Brazilian Reproducibility Initiative)
-  # "SSS" (significant, in the same sense)
+reproducibility.rate = function(master.rep.df, types = c(), input, n.sample = -1) {
   # n.sample is the number of experiments selected to evaluate (-1 means all experiments)
   
   n.experiments = ifelse(n.sample > 0, n.sample, nrow(master.rep.df)/3)
@@ -125,24 +121,23 @@ reproducibility.rate = function(master.rep.df, type, input, n.sample = -1, measu
   )
 }
 
-# Runs a meta analysis given the means, SDs and Ns, then returns what is asked.
-run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated, n_treated, what) {
+# Runs and returns a meta analysis given the means, SDs and Ns
+run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated, n_treated) {
   
   ess = escalc(measure = "MD", m1i = as.numeric(mean_treated), 
                m2i = as.numeric(mean_control), sd1i = as.numeric(sd_treated), 
                sd2i = as.numeric(sd_control), n1i = as.numeric(n_treated), 
                n2i = as.numeric(n_control))
   tryCatch({
-    m = rma(yi=yi, vi=vi, data = ess, measure = "MD", method = "REML", control=list(maxiter=1000))
+    m = rma(yi = yi, vi = vi, data = ess, measure = "MD", method = "REML",
+            control = list(maxiter=1000))
     pred = predict.rma(m, level = 0.95, digits = 3)
-    PI = list(PI.lower = pred$cr.lb, PI.upper = pred$cr.ub, beta = m$beta[[1]])
-    signif = list(eff = pred$pred,  se = pred$se, zval = m$zval, signif = abs(pred$pred) - 1.96 * pred$se > 0)
-    beta = list(beta = m$beta[[1]])
+    # PI = list(PI.lower = pred$cr.lb, PI.upper = pred$cr.ub, beta = m$beta[[1]])
+    # signif = list(eff = pred$pred,  se = pred$se, zval = m$zval, signif = abs(pred$pred) - 1.96 * pred$se > 0)
+    # beta = list(beta = m$beta[[1]])
   }, error = function(e) {
-    PI = list(PI.lower = -999, PI.upper = 999)
-    signif = list(eff = 999, signif = FALSE)
-    beta = list(beta = 999)
+    pred = NULL
   })
   
-  if (what == "PI") { PI } else if (what == "S") { signif } else if (what == "EST") { beta } else if (what == "RMA") { m }
+  return (pred)
 }
