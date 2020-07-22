@@ -49,7 +49,6 @@ reproducibility.rate = function(master.rep.df, type, input, n.sample = -1, measu
   # type is one of:
   # "BRI" (Brazilian Reproducibility Initiative)
   # "SSS" (significant, in the same sense)
-  # "ST" (Small Telescopes)
   # n.sample is the number of experiments selected to evaluate (-1 means all experiments)
   
   n.experiments = ifelse(n.sample > 0, n.sample, nrow(master.rep.df)/3)
@@ -95,30 +94,6 @@ reproducibility.rate = function(master.rep.df, type, input, n.sample = -1, measu
       select(Effect.Index, Real.Effect.Size, Estimated.Effect.Size, eff, signif)
     rep.ests$Reproduced = rep.ests$signif &
       rep.ests$eff / rep.ests$Estimated.Effect.Size > 0
-    
-    
-    # If ST check if it is significantly different from a small effect (defined as an effect that the original study has 33% power to detect) in a one sided T-test at 5% level
-    # The Small Telescopes approach recommends using a replication sample that is always 2.5 times the original sample size, as this gives about 80% power to  reject a "small effect"
-  } else if (type == "ST") {
-    
-    #returns power calculation results for t-test at 33% power using original estimates 
-    small_telescope_d33 = mapply(pwr.t.test, n = rep.ests$Sample.Size, power = 1/3)
-    small_telescope_d33 = as.data.frame(small_telescope_d33)
-    #transposes dataframe to correct rows vs columns
-    small_telescope_d33 = as.data.frame(t(small_telescope_d33))
-    #adds d33 to rep.ests
-    rep.ests$small_telescope_d33 = t(as.data.frame(small_telescope_d33$d))
-    
-    rep.res = rep.df[, run.ma(MeanControl, SDControl, Sample.Size,
-                              MeanTreated, SDTreated, Sample.Size,
-                              what = "S"), Effect.Index]
-    
-    rep.ests = merge(rep.ests, rep.res, by = "Effect.Index") %>%
-      select(Effect.Index, Real.Effect.Size, Estimated.Effect.Size, eff, se, rep.sample.size, signif, zval, small_telescope_d33)
-    
-    rep.ests$Reproduced = rep.ests$eff / rep.ests$Estimated.Effect.Size > 0 &
-      pt(abs(rep.ests$zval), df = rep.ests$rep.sample.size - 1, ncp = rep.ests$small_telescope_d33 * sqrt(rep.ests$rep.sample.size / 2)) > 0.05
-    rep.ests$small_telescope_d33 = NULL # GAMBIARRA, VER COM O PEDRO DEPOIS O QUE HOUVE ... PARECE QUE A COLUNA d_33 É UM DATA FRAME? ...
   }
   
   tried.true = rep.ests[abs(Real.Effect.Size) >= input$min.effect.of.interest, .N]
@@ -133,9 +108,6 @@ reproducibility.rate = function(master.rep.df, type, input, n.sample = -1, measu
   rep.ests$Mfactor = ifelse(
     rep.ests$Real.Effect.Size / rep.ests$Estimated.Effect.Size > 0,
     rep.ests$Estimated.Effect.Size / rep.ests$Real.Effect.Size, NA)
-  # filter for abs(Estimated.Effect.Size) >= Min.Interesting.Effect?
-  
-  # browser()
   
   return (
     data.frame(Measure = measure.name,
