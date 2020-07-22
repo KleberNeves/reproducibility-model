@@ -329,13 +329,25 @@ run.iteration = function(input) {
   return (0)
 }
 
-# Runs a replicate of the simulation (nice to abstract the run.simulation function, however, it is a legacy from when we ran multiple simulations at once from the GUI)
-run.replicate = function(input) {
-  t = glue("Running the simulation ...")
-  print(t); if (shiny_running) { showNotification(t, type = "message", duration = 8) }
+feedback.message = function(msg, msgtype = "default") {
+  print(msg); if (shiny_running) { showNotification(msg, type = msgtype) }
+}
+
+# Main function, called from the interface to set the whole model running
+run.simulation = function(input) {
+  if (shiny_running) {
+    input = reactiveValuesToList(input)
+  } else {
+    input = input
+  }
   
-  t = "Generating the literature ..."
-  print(t); if (shiny_running) { showNotification(t, type = "default") }
+  input$n.scientists = 1
+  
+  evdf = data.frame()
+  
+  input = setup.model(input)
+  
+  feedback.message("Generating the literature ...")
   
   it = 0
   r25 = F; r50 = F; r75 = F
@@ -343,60 +355,25 @@ run.replicate = function(input) {
     it = run.iteration(input)
     
     # Progress feedback
-    if (!r25 &
-        reached.sim.end(input$sim.end.value, input$how.sim.ends, input$alpha.threshold, 0.25)) {
-      t = "25% done ..."
-      print(t); if (shiny_running) { showNotification(t, type = "default") }
-      r25 = T
+    progress = ceiling(100 * sim.end.tracking(input$how.sim.ends, input$alpha.threshold) / input$sim.end.value)
+    
+    if (progress %% 25 == 0) {
+      feedback.message(glue("{progress}% done ..."))
     }
-    if (!r50 &
-        reached.sim.end(input$sim.end.value, input$how.sim.ends, input$alpha.threshold, 0.5)) {
-      t = "Halfway there ..."
-      print(t); if (shiny_running) { showNotification(t, type = "default") }
-      r50 = T
-    }
-    if (!r75 &
-        reached.sim.end(input$sim.end.value, input$how.sim.ends, input$alpha.threshold, 0.75)) {
-      t = "Almost done ..."
-      print(t); if (shiny_running) { showNotification(t, type = "default") }
-      r75 = T
-    }
-
   }
-}
-
-# Main function, called from the interface to set the whole model running
-run.simulation = function(input) {
-  if (shiny_running) {
-    Linput = reactiveValuesToList(input)
-  } else {
-    Linput = input
-  }
-  
-  Linput$n.scientists = 1
-  
-  evdf = data.frame()
-  
-  Linput = setup.model(Linput)
-  
-  run.replicate(Linput)
-  
-  # summary.estimates.df <<- estimates.df %>% mutate(Significant = p.value < Alpha, True.Effect = abs(Real.Effect.Size) >= Min.Interesting.Effect) %>% group_by(Published, Significant, True.Effect) %>% summarise(N = n()) %>% mutate(Correct = (Significant == True.Effect)) %>% select(2,3,1,5,4)
   
   # Save the presynthesis results in another dataframe before synthesizing
   presynthesis.df <<- estimates.df[, .SD[1:estimates.rowcount]]
   estimates.df <<- synthesize(presynthesis.df)
 
   # Performs replications
-  t = "Replicating experiments ..."
-  print(t); if (shiny_running) { showNotification(t, type = "default") }
+  feedback.message("Replicating experiments ...")
   
   if (input$calc.repro) {
     master.rep.df <<- perform.replications(input, rep.power = 0.95, n.reps = 3)
   }
   
-  t = "... and ... Finished!"
-  print(t); if (shiny_running) { showNotification(t, type = "error") }
+  feedback.message("... and ... Finished!", "error")
 }
 
 # Synthesizes the literature, performing meta analysis of replications of the same effect when appropriate
