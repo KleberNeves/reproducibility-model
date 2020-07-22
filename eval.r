@@ -1,6 +1,6 @@
 # Measures to evaluate the corpus of estimates of effect sizes
 # General function that calculates all rates, in all cases
-make.evaluation.tests = function(input) {
+make.evaluation.tests = function(repro = F) {
   df = data.frame()
   
   pb = T; df = rbind(df, minimum.effect.count(pb))
@@ -42,7 +42,7 @@ make.evaluation.tests = function(input) {
   pb = T; df = rbind(df, neg.pred.value(pb))
   pb = F; df = rbind(df, neg.pred.value(pb))
 
-  if (input$calc.repro) {
+  if (repro) {
     
     df$variable = character(nrow(df))
     

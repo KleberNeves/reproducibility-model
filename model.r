@@ -386,22 +386,15 @@ run.simulation = function(input) {
   # Save the presynthesis results in another dataframe before synthesizing
   presynthesis.df <<- estimates.df[, .SD[1:estimates.rowcount]]
   estimates.df <<- synthesize(presynthesis.df)
-  
-  # t = "Evaluating the literature ..."
-  # print(t); if (shiny_running) { showNotification(t, type = "default") }
-  # 
-  # new.measures = make.evaluation.tests(Linput)
-  # 
-  # if (input$scenarioName == "") {
-  #   new.measures$scenario = Linput$scenario 
-  # } else {
-  #   new.measures$scenario = Linput$scenarioName
-  # }
-  # 
-  # evdf = rbind(evdf, new.measures)
-  # 
-  # eval.df <<- evdf
 
+  # Performs replications
+  t = "Replicating experiments ..."
+  print(t); if (shiny_running) { showNotification(t, type = "default") }
+  
+  if (input$calc.repro) {
+    master.rep.df <<- perform.replications(input, rep.power = 0.95, n.reps = 3)
+  }
+  
   t = "... and ... Finished!"
   print(t); if (shiny_running) { showNotification(t, type = "error") }
 }

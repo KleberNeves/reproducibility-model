@@ -137,4 +137,4 @@ shiny_running = TRUE
 # Model code
 source("model.r")
 source("eval.r")
-# source("rep.r")
+source("rep.r")
