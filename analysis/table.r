@@ -4,7 +4,8 @@ source("helper.r")
 
 # Actually getting the data
 data_dir = "../../../Results/0720_Paper_Table/"
-figdata = get.figure.data.rep(data_dir)
+fulldata = get.figure.data.rep(data_dir)
+figdata = fulldata$eval
 
 # Convert to numeric
 nonnum_cols = c("calc.repro", "how.sim.ends", "scenarioName")
