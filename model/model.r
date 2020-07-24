@@ -313,15 +313,18 @@ run.simulation = function(input) {
   feedback.message("Generating the literature ...")
   
   it = 0
-  r25 = F; r50 = F; r75 = F
+  give.fb = T
   while (it != 1) {
     it = scientist.action(input)
     
     # Progress feedback
     progress = round(100 * sim.end.tracking(input$how.sim.ends, input$alpha.threshold) / input$sim.end.value)
     
-    if (progress %% 25 == 0) {
+    if (progress %% 25 == 0 & give.fb) {
       feedback.message(glue("{progress}% done ..."))
+      give.fb = F
+    } else if (progress %% 25 != 0) {
+      give.fb = T
     }
   }
 

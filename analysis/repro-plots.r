@@ -4,8 +4,8 @@ source("helper.r")
 
 # Actually getting the data
 data_dir = "/home/kleber/Dropbox/Scientific Research/Projects/Modelo Reprodutibilidade/Results/0720_2nd_Part_Test/"
-fulldata = get.figure.data.rep(data_dir)
-figdata = fulldata$eval
+figdata = get.figure.data.eval(data_dir)
+repdata = get.figure.data.rep(data_dir)
 
 # Convert to numeric
 nonnum_cols = c("calc.repro", "how.sim.ends", "scenarioName")
