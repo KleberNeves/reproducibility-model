@@ -167,36 +167,34 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   colnames(result) = c("Type", "LongType", "Measure", "Value")
   result$Value = as.character(result$Value)
   
+  result = rbind(result,
   # Real Effect?
-  result = rbind(
-    result, data.frame(Type = NA, LongType = NA,
-                       Measure = "Is.Real",
-                       Value = abs(real.effect) >= min.effect.of.interest))
-  
+  data.frame(Type = NA, LongType = NA,
+             Measure = "Is.Real",
+             Value = abs(real.effect) >= min.effect.of.interest),
+
   # Exaggeration (MA x Original)
-  result = rbind(
-    result, data.frame(Type = NA, LongType = NA,
-                       Measure = "Exaggeration (MA x Original)",
-                       Value = ifelse(MA$m$beta[[1]] / original.estimate <= 0,
-                                      NA, MA$m$beta[[1]] / original.estimate)))
+  data.frame(Type = NA, LongType = NA,
+             Measure = "Exaggeration (MA x Original)",
+             Value = ifelse(MA$m$beta[[1]] / original.estimate <= 0,
+                            NA, MA$m$beta[[1]] / original.estimate)),
   # Exaggeration (MA x Real)
-  result = rbind(
-    result, data.frame(Type = NA, LongType = NA,
-                       Measure = "Exaggeration (MA x Real)",
-                       Value = ifelse(MA$m$beta[[1]] / real.effect <= 0,
-                                      NA, MA$m$beta[[1]] / real.effect)))
+  data.frame(Type = NA, LongType = NA,
+             Measure = "Exaggeration (MA x Real)",
+             Value = ifelse(MA$m$beta[[1]] / real.effect <= 0,
+                            NA, MA$m$beta[[1]] / real.effect)),
   # Signal (MA x Original)
-  result = rbind(
-    result, data.frame(Type = NA, LongType = NA,
-                       Measure = "Signal Error (MA x Original)",
-                       Value = MA$m$beta[[1]] / original.estimate <= 0 &
-                         MA$m$pval < 0.05))
+  data.frame(Type = NA, LongType = NA,
+             Measure = "Signal Error (MA x Original)",
+             Value = MA$m$beta[[1]] / original.estimate <= 0 &
+                     MA$m$pval < 0.05),
   # Signal (MA x Real)
-  result = rbind(
-    result, data.frame(Type = NA, LongType = NA,
-                       Measure = "Signal Error (MA x Real)",
-                       Value = MA$m$beta[[1]] / real.effect <= 0 &
-                         MA$m$pval < 0.05))
+  data.frame(Type = NA, LongType = NA,
+           Measure = "Signal Error (MA x Real)",
+           Value = MA$m$beta[[1]] / real.effect <= 0 &
+                   MA$m$pval < 0.05)
+  )
+  
   result
 }
 

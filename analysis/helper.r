@@ -10,13 +10,13 @@ library(stringr)
 
 # Defining the functions to extract simulation results from the zip files
 get.figure.data.eval = function(datapath) {
-  zips = paste(datapath, list.files(datapath, ".zip$"), sep ="")[1:2]
+  zips = paste(datapath, list.files(datapath, ".zip$"), sep ="")
   df = ldply(zips, get.data.from.zip.eval, .progress = "text")
   df
 }
 
 get.figure.data.rep = function(datapath) {
-  zips = paste(datapath, list.files(datapath, ".zip$"), sep ="")[1:2]
+  zips = paste(datapath, list.files(datapath, ".zip$"), sep ="")
   df = ldply(zips, get.data.from.zip.rep, .progress = "text")
   df
 }
