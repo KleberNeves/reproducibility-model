@@ -271,15 +271,12 @@ scientist.action = function(input) {
   # Bias
   ### With a given probability, if the result is not significant,
   ### change the estimated effect size to be just over the threshold
-  
-  if (xp$p.value > xp$Alpha & runif(1,0,1) < input$bias.level) {
-    # Calculates the mean difference from the t critical value
-    meandiff = xp$Estimated.Pooled.SD * -qt(xp$Alpha / 2, df = 2 * input$typical.sample.size - 2) * sqrt(2 / input$typical.sample.size)
-    xp$Estimated.Effect.Size = meandiff * sign(xp$Estimated.Effect.Size)
-    xp$MeanTreated = xp$MeanControl + xp$Estimated.Effect.Size
-    xp$p.value = xp$Alpha - 0.01
-    xp$Published = T
-    xp$Biased = T
+  if (runif(1,0,1) < input$bias.level) {
+    while (xp$p.value > xp$Alpha) {
+      # Redo the experiment until it is significant
+      xp = perform.experiment(effect.index, input)
+      xp$Biased = T
+    }
   }
   
   # Increases the row count, allocates memory if the original allocation is full
