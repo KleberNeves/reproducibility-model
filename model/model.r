@@ -108,12 +108,13 @@ sample.double = function (sdB, weightB = 0.5, k = 1) {
 }
 
 # Generates a new effect to be investigated
-generate.effect.size = function(p_sdA, p_weightB, p_meanB, p_sdB, eff.dist) {
+generate.effect.size = function(p_sdA, p_weightB, p_meanB, p_sdB, eff.dist, interlab.variation = 0) {
   eff = sample.from.dist(p_sdA, p_weightB, p_meanB, p_sdB)
-  
+  ilvar = get.inter
   ind = nrow(effects.df) + 1
   effects.df <<- rbindlist(list(
-    effects.df, data.frame(Effect.Index = ind, Effect.Size = eff)
+    effects.df, data.frame(Effect.Index = ind, Effect.Size = eff,
+                  Effect.Variation = get.interlab.variation(interlab.variation))
   ))
   
   return (ind)
@@ -127,9 +128,15 @@ pick.published.effect = function() {
 }
 
 # Add interlab variation (picked from a normal distribution centered on the real effect)
+get.interlab.variation = function(interlab.variation) {
+   return (runif(n = 1, min = 0, max = interlab.variation))
+}
+
+# Add interlab variation (picked from a normal distribution centered on the real effect)
 add.interlab.variation = function(effect.index, interlab.variation) {
   real.eff = effects.df[[effect.index,"Effect.Size"]]
-  eff = rnorm(n = 1, mean = real.eff, sd = interlab.variation)
+  effvar = effects.df[[effect.index,"Effect.Variation"]]
+  eff = rnorm(n = 1, mean = real.eff, sd = effvar)
   return (eff)
 }
 
@@ -256,7 +263,7 @@ scientist.action = function(input) {
   }
   
   # Picks the effect size to be investigated
-    effect.index = generate.effect.size(input$sdA, input$weightB, input$meanB, input$sdB)
+    effect.index = generate.effect.size(input$sdA, input$weightB, input$meanB, input$sdB, input$interlab.var)
 
   # Performs the experiment
   xp = perform.experiment(effect.index, input)
