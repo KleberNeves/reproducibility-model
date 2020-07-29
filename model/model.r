@@ -110,7 +110,6 @@ sample.double = function (sdB, weightB = 0.5, k = 1) {
 # Generates a new effect to be investigated
 generate.effect.size = function(p_sdA, p_weightB, p_meanB, p_sdB, eff.dist, interlab.variation = 0) {
   eff = sample.from.dist(p_sdA, p_weightB, p_meanB, p_sdB)
-  ilvar = get.inter
   ind = nrow(effects.df) + 1
   effects.df <<- rbindlist(list(
     effects.df, data.frame(Effect.Index = ind, Effect.Size = eff,
