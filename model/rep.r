@@ -57,7 +57,7 @@ perform.replications = function(input, rep.power = -1) {
   
   rep.df = merge(rep.df,
                  rep.ests[, .(Effect.Index, rep.sample.size,
-                              Original.Effect.Size, CI.low, CI.high)],
+                              Original.Effect.Size, CI.low, CI.high, Biased)],
                  by = "Effect.Index")
   
   setnames(rep.df, c("CI.low.y","CI.high.y"), c("Original.CI.low", "Original.CI.high"))
@@ -94,13 +94,15 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   cast.df = target.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
     dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
   cast.df$Is.Real = as.logical(cast.df$Is.Real)
-  other.rates = cast.df[, .(Prev_Sample = mean(Is.Real)), by = .(RepSet)]
+  other.rates = cast.df[, .(Prev_Sample = mean(Is.Real),
+                            PrevBias_Whole = mean(Is.Biased)), by = .(RepSet)]
   
   # Prevalence of the literature (whole literature)
   cast.df = rates.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
     dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
   cast.df$Is.Real = as.logical(cast.df$Is.Real)
-  other.rates.whole = cast.df[, .(Prev_Whole = mean(Is.Real)), by = .(RepSet)]
+  other.rates.whole = cast.df[, .(Prev_Whole = mean(Is.Real),
+                                  PrevBias_Whole = mean(Is.Biased)), by = .(RepSet)]
   
   # General (criteria-independent)
   cast.df = target.df %>% filter(is.na(Type) & Measure != "Is.Real") %>%
@@ -144,15 +146,15 @@ calc.rep.measures = function(types = c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS", "O
 
 # Computes many types of reproducibility measures from a set of replications
 evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
-  
+  browser()
   MA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
                              MeanTreated, SDTreated, Sample.Size))
   
   result = ldply(types, reproducibility.success, rep.exps = rep.exps, MA = MA)
   original.estimate = rep.exps$Original.Effect.Size[1]
   real.effect = rep.exps$Real.Effect.Size[1]
+  biased = rep.exps$Biased[1]
   
-  # By criteria
   # FP (reproduced but is not real)
   result$FP = result$Success & abs(real.effect) < min.effect.of.interest
   # FN (didn't reproduce but is real)
@@ -161,6 +163,15 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   result$TP = result$Success & abs(real.effect) >= min.effect.of.interest
   # TN (didn't reproduce and is not real)
   result$TN = !result$Success & abs(real.effect) < min.effect.of.interest
+  
+  # FP (reproduced but is not real)
+  result$FPBias = result$Success & biased
+  # FN (didn't reproduce but is real)
+  result$FNBias = !result$Success & biased
+  # TP (reproduced and is real)
+  result$TPBias = result$Success & biased
+  # TN (didn't reproduce and is not real)
+  result$TNBias = !result$Success & biased
   
   # Cast to long format (seems convoluted, there should be a better way)
   result = melt(result, id.vars = c("Type", "LongType"))
@@ -172,6 +183,11 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   data.frame(Type = NA, LongType = NA,
              Measure = "Is.Real",
              Value = abs(real.effect) >= min.effect.of.interest),
+  
+  # Is Biased?
+  data.frame(Type = NA, LongType = NA,
+             Measure = "Is.Biased",
+             Value = biased),
 
   # Exaggeration (MA x Original)
   data.frame(Type = NA, LongType = NA,
