@@ -54,13 +54,15 @@ perform.replications = function(input, rep.power = -1) {
     rep(rep.ests$Effect.Index, n.reps),
     replicate.exp, rep.df, separate.reps = input$repro.repeats)
   rep.df = rbindlist(rep.df)
-  
+
   rep.df = merge(rep.df,
                  rep.ests[, .(Effect.Index, rep.sample.size,
                               Original.Effect.Size, CI.low, CI.high, Biased)],
                  by = "Effect.Index")
   
-  setnames(rep.df, c("CI.low.y","CI.high.y"), c("Original.CI.low", "Original.CI.high"))
+  setnames(rep.df,
+           c("CI.low.y","CI.high.y","Biased.y"), c("Original.CI.low", "Original.CI.high","Biased"))
+  
   
   return (rep.df)
 }
@@ -68,7 +70,7 @@ perform.replications = function(input, rep.power = -1) {
 # Goes over the replication data frame with evaluations and calculates overall summaries for
 #   each of the measures present there.
 reproducibility.rate = function (rates.df, n.sample = -1) {
-
+  
   # Get a sample if required
   if (n.sample > 0) {
     eff.sample = sample(x = unique(rates.df$Effect.Index), size = n.sample, replace = F)
@@ -88,21 +90,29 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   rep.rates = cast.df[, .(ReproRate = mean(Success),
                           Specificity = sum(TN) / (sum(TN) + sum(FP)),
                           Sensitivity = sum(TP) / (sum(TP) + sum(FN))),
-                        by = .(RepSet, Type, LongType)]
+                      by = .(RepSet, Type, LongType)]
   
   # Prevalence of the literature (only of the target)
   cast.df = target.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
     dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
   cast.df$Is.Real = as.logical(cast.df$Is.Real)
-  other.rates = cast.df[, .(Prev_Sample = mean(Is.Real),
-                            PrevBias_Whole = mean(Is.Biased)), by = .(RepSet)]
+  other.rates = cast.df[, .(Prev_Sample = mean(Is.Real)), by = .(RepSet)]
+  
+  cast.df = target.df %>% filter(Measure == "Is.Biased") %>% select(-Type, -LongType) %>%
+    dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
+  cast.df$Is.Biased = as.logical(cast.df$Is.Biased)
+  other.rates = cast.df[, .(Prev_Sample = mean(Is.Biased)), by = .(RepSet)]
   
   # Prevalence of the literature (whole literature)
   cast.df = rates.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
     dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
   cast.df$Is.Real = as.logical(cast.df$Is.Real)
-  other.rates.whole = cast.df[, .(Prev_Whole = mean(Is.Real),
-                                  PrevBias_Whole = mean(Is.Biased)), by = .(RepSet)]
+  other.rates.whole = cast.df[, .(Prev_Whole = mean(Is.Real)), by = .(RepSet)]
+  
+  cast.df = rates.df %>% filter(Measure == "Is.Biased") %>% select(-Type, -LongType) %>%
+    dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
+  cast.df$Is.Biased = as.logical(cast.df$Is.Biased)
+  other.rates.whole = cast.df[, .(Prev_Whole = mean(Is.Biased)), by = .(RepSet)]
   
   # General (criteria-independent)
   cast.df = target.df %>% filter(is.na(Type) & Measure != "Is.Real") %>%
@@ -113,11 +123,11 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   
   # exaggeration and signal error rate
   error.rates = cast.df[,
-    .(Exaggeration_MA_x_Original = median(`Exaggeration (MA x Original)`, na.rm = T),
-      Exaggeration_MA_x_Real = median(`Exaggeration (MA x Real)`, na.rm = T),
-      Signal_Error_MA_x_Original = mean(`Signal Error (MA x Original)`, na.rm = T),
-      Signal_Error_MA_x_Real = mean(`Signal Error (MA x Real)`, na.rm = T)),
-    by = .(RepSet)]
+                        .(Exaggeration_MA_x_Original = median(`Exaggeration (MA x Original)`, na.rm = T),
+                          Exaggeration_MA_x_Real = median(`Exaggeration (MA x Real)`, na.rm = T),
+                          Signal_Error_MA_x_Original = mean(`Signal Error (MA x Original)`, na.rm = T),
+                          Signal_Error_MA_x_Real = mean(`Signal Error (MA x Real)`, na.rm = T)),
+                        by = .(RepSet)]
   
   # browser()
   # Make long, bind and return
@@ -139,14 +149,13 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
 calc.rep.measures = function(types = c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS", "Orig-in-MA-CI", "MA-in-Orig-CI"), min.effect.of.interest) {
   # For each set of experiments, calculates each reproducibility measure in types
   rates.df = replications.df[, evaluate.exp.rep(.SD, types = types,
-                                  min.effect.of.interest = min.effect.of.interest),
+                                                min.effect.of.interest = min.effect.of.interest),
                              by = .(Effect.Index, RepSet)]
   return (rates.df)
 }
 
 # Computes many types of reproducibility measures from a set of replications
 evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
-  browser()
   MA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
                              MeanTreated, SDTreated, Sample.Size))
   
@@ -167,9 +176,9 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   # FP (reproduced but is not real)
   result$FPBias = result$Success & biased
   # FN (didn't reproduce but is real)
-  result$FNBias = !result$Success & biased
+  result$FNBias = !result$Success & !biased
   # TP (reproduced and is real)
-  result$TPBias = result$Success & biased
+  result$TPBias = result$Success & !biased
   # TN (didn't reproduce and is not real)
   result$TNBias = !result$Success & biased
   
@@ -179,36 +188,36 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   result$Value = as.character(result$Value)
   
   result = rbind(result,
-  # Real Effect?
-  data.frame(Type = NA, LongType = NA,
-             Measure = "Is.Real",
-             Value = abs(real.effect) >= min.effect.of.interest),
-  
-  # Is Biased?
-  data.frame(Type = NA, LongType = NA,
-             Measure = "Is.Biased",
-             Value = biased),
-
-  # Exaggeration (MA x Original)
-  data.frame(Type = NA, LongType = NA,
-             Measure = "Exaggeration (MA x Original)",
-             Value = ifelse(MA$m$beta[[1]] / original.estimate <= 0,
-                            NA, MA$m$beta[[1]] / original.estimate)),
-  # Exaggeration (MA x Real)
-  data.frame(Type = NA, LongType = NA,
-             Measure = "Exaggeration (MA x Real)",
-             Value = ifelse(MA$m$beta[[1]] / real.effect <= 0,
-                            NA, MA$m$beta[[1]] / real.effect)),
-  # Signal (MA x Original)
-  data.frame(Type = NA, LongType = NA,
-             Measure = "Signal Error (MA x Original)",
-             Value = MA$m$beta[[1]] / original.estimate <= 0 &
-                     MA$m$pval < 0.05),
-  # Signal (MA x Real)
-  data.frame(Type = NA, LongType = NA,
-           Measure = "Signal Error (MA x Real)",
-           Value = MA$m$beta[[1]] / real.effect <= 0 &
-                   MA$m$pval < 0.05)
+                 # Real Effect?
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Is.Real",
+                            Value = abs(real.effect) >= min.effect.of.interest),
+                 
+                 # Is Biased?
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Is.Biased",
+                            Value = biased),
+                 
+                 # Exaggeration (MA x Original)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Exaggeration (MA x Original)",
+                            Value = ifelse(MA$m$beta[[1]] / original.estimate <= 0,
+                                           NA, MA$m$beta[[1]] / original.estimate)),
+                 # Exaggeration (MA x Real)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Exaggeration (MA x Real)",
+                            Value = ifelse(MA$m$beta[[1]] / real.effect <= 0,
+                                           NA, MA$m$beta[[1]] / real.effect)),
+                 # Signal (MA x Original)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Signal Error (MA x Original)",
+                            Value = MA$m$beta[[1]] / original.estimate <= 0 &
+                              MA$m$pval < 0.05),
+                 # Signal (MA x Real)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Signal Error (MA x Real)",
+                            Value = MA$m$beta[[1]] / real.effect <= 0 &
+                              MA$m$pval < 0.05)
   )
   
   result
@@ -244,7 +253,7 @@ reproducibility.success = function (type, rep.exps, MA) {
     LongType = longtype,
     Success = value
   ))
-
+  
 }
 
 # Runs and returns a meta analysis given the means, SDs and Ns
