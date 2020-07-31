@@ -107,6 +107,48 @@ plot.error = function (D, dist_shape, all_or_20, prev_all, which_measure, which_
   p
 }
 
+# Plots the reproducibility, sensitivity or specificity of the many definitions of "success",
+# facetting for power and interlab variation (instead of bias)
+plot.rep.type2 = function (D, dist_shape, all_or_20, prev_all, which_measure, exclude_types = c()) {
+  DS = D %>% filter(scenarioName == dist_shape &
+                      Sample == all_or_20 &
+                      Measure == which_measure &
+                      !(Type %in% exclude_types))
+  
+  p = ggplot(DS)
+  
+  if (prev_all) {
+    p = p + aes(x = `Prev_SampleBias_All`)
+    xlabel = 'Prevalence of Unbiased Effects (literature)'
+    prevlabel = "Prevalence (literature)"
+  } else {
+    p = p + aes(x = `Prev_SampleBias_20`)
+    xlabel = 'Prevalence of Unbiased Effects (in the sample)'
+    prevlabel = 'Prevalence (in the sample)'
+  }
+  
+  tt = paste0(dist_shape, " - ", all_or_20, " exps, ", which_measure, " x ", prevlabel)
+  
+  p = p + aes(y = value, group = Type, color = as.factor(Type)) +
+    geom_point() +
+    geom_line(stat = "summary", size = 0.6) +
+    ylim(c(0,1)) + xlim(c(-0.05,1.05)) +
+    facet_grid(interlab.var.label ~ power.label) +
+    scale_color_manual(values = c("brown", "springgreen4", "dodgerblue4", "dodgerblue2", "paleturquoise4")) +
+    labs(x = xlabel, y = which_measure,
+         title = tt, color = "Definition") +
+    figtheme
+  
+  if (which_measure == "Reproducibility") {
+    p = p + geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey")
+  }
+  
+  ggsave(plot = p,
+         filename = paste0(tt, ".png"),
+         width = 12, height = 7, dpi = 150)
+  
+  p
+}
 
 ### REPRODUCIBILITY RATE PLOTS
 
@@ -151,3 +193,21 @@ plot.error(D, "Dichotomous", "All", F, "Exaggeration", "Original")
 plot.error(D, "Dichotomous", "20", F, "Exaggeration", "Real")
 plot.error(D, "Dichotomous", "All", F, "Signal", "Original")
 plot.error(D, "Dichotomous", "20", F, "Signal", "Real")
+
+
+####### REPRODUCIBILITY PLOTS BIAS-BASED
+
+D = repdata %>% select(scenarioName, Prev_SampleBias_20, Prev_SampleBias_All, interlab.var.label, bias.label, power.label, RepSet, 21:70)
+D = D %>% melt(id.vars = c("scenarioName", "Prev_SampleBias_20", "Prev_SampleBias_All", "interlab.var.label", "bias.label", "power.label", "RepSet"))
+D$Sample = ifelse(str_detect(D$variable, "_All"), "All", "20")
+D$Measure = str_remove_all(str_extract(D$variable, "_.+?_"),"_")
+D$Measure = car::recode(D$Measure, "'ReproRate' = 'Reproducibility'")
+D$Type = str_remove_all(str_extract(D$variable, ".+?_"),"_")
+
+plot.rep.type2(D, "Two Peaks (SD = 0.1)", "All", T, "Reproducibility")
+plot.rep.type2(D, "Two Peaks (SD = 0.1)", "20", T, "Reproducibility")
+plot.rep.type2(D, "Two Peaks (SD = 0.1)", "20", F, "Reproducibility")
+plot.rep.type2(D, "Two Peaks (SD = 0.1)", "All", F, "Specificity")
+plot.rep.type2(D, "Two Peaks (SD = 0.1)", "All", F, "SpecificityBias")
+plot.rep.type2(D, "Two Peaks (SD = 0.1)", "All", F, "Sensitivity")
+plot.rep.type2(D, "Two Peaks (SD = 0.1)", "All", F, "SensitivityBias")

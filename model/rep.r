@@ -54,7 +54,7 @@ perform.replications = function(input, rep.power = -1) {
     rep(rep.ests$Effect.Index, n.reps),
     replicate.exp, rep.df, separate.reps = input$repro.repeats)
   rep.df = rbindlist(rep.df)
-
+  browser()
   rep.df = merge(rep.df,
                  rep.ests[, .(Effect.Index, rep.sample.size,
                               Original.Effect.Size, CI.low, CI.high, Biased)],
@@ -62,7 +62,6 @@ perform.replications = function(input, rep.power = -1) {
   
   setnames(rep.df,
            c("CI.low.y","CI.high.y","Biased.y"), c("Original.CI.low", "Original.CI.high","Biased"))
-  
   
   return (rep.df)
 }
@@ -84,12 +83,14 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   # For each criteria
   cast.df = target.df %>% filter(!is.na(Type)) %>%
     dcast(Effect.Index + Type + LongType + RepSet ~ Measure, value.var = "Value")
-  sapply(5:9, function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
+  sapply(5:13, function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
   
   # overall replication rate, PPV/precision, recall
   rep.rates = cast.df[, .(ReproRate = mean(Success),
                           Specificity = sum(TN) / (sum(TN) + sum(FP)),
-                          Sensitivity = sum(TP) / (sum(TP) + sum(FN))),
+                          Sensitivity = sum(TP) / (sum(TP) + sum(FN)),
+                          SpecificityBias = sum(TNBias) / (sum(TNBias) + sum(FPBias)),
+                          SensitivityBias = sum(TPBias) / (sum(TPBias) + sum(FNBias))),
                       by = .(RepSet, Type, LongType)]
   
   # Prevalence of the literature (only of the target)
@@ -101,7 +102,7 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   cast.df = target.df %>% filter(Measure == "Is.Biased") %>% select(-Type, -LongType) %>%
     dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
   cast.df$Is.Biased = as.logical(cast.df$Is.Biased)
-  other.rates = cast.df[, .(Prev_Sample = mean(Is.Biased)), by = .(RepSet)]
+  other.rates.bias = cast.df[, .(Prev_SampleBias = mean(!Is.Biased)), by = .(RepSet)]
   
   # Prevalence of the literature (whole literature)
   cast.df = rates.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
@@ -112,10 +113,10 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   cast.df = rates.df %>% filter(Measure == "Is.Biased") %>% select(-Type, -LongType) %>%
     dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
   cast.df$Is.Biased = as.logical(cast.df$Is.Biased)
-  other.rates.whole = cast.df[, .(Prev_Whole = mean(Is.Biased)), by = .(RepSet)]
+  other.rates.whole.bias = cast.df[, .(Prev_WholeBias = mean(!Is.Biased)), by = .(RepSet)]
   
   # General (criteria-independent)
-  cast.df = target.df %>% filter(is.na(Type) & Measure != "Is.Real") %>%
+  cast.df = target.df %>% filter(is.na(Type) & !(Measure %in% c("Is.Biased", "Is.Real"))) %>%
     select(-Type, -LongType) %>%
     dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
   sapply(3:4, function(x) { cast.df[[x]] <<- as.numeric(cast.df[[x]]) })
@@ -129,14 +130,15 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
                           Signal_Error_MA_x_Real = mean(`Signal Error (MA x Real)`, na.rm = T)),
                         by = .(RepSet)]
   
-  # browser()
   # Make long, bind and return
   error.rates = melt(error.rates, id.vars = "RepSet")
   other.rates = melt(other.rates, id.vars = "RepSet")
+  other.rates.bias = melt(other.rates.bias, id.vars = "RepSet")
   other.rates.whole = melt(other.rates.whole, id.vars = "RepSet")
+  other.rates.whole.bias = melt(other.rates.whole.bias, id.vars = "RepSet")
   rep.rates = melt(rep.rates, id.vars = c("RepSet", "Type", "LongType"))
   
-  other.rates = rbind(error.rates, other.rates, other.rates.whole)
+  other.rates = rbind(error.rates, other.rates, other.rates.whole, other.rates.bias, other.rates.whole.bias)
   other.rates$Type = NA
   other.rates$LongType = NA
   
@@ -156,6 +158,7 @@ calc.rep.measures = function(types = c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS", "O
 
 # Computes many types of reproducibility measures from a set of replications
 evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
+  
   MA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
                              MeanTreated, SDTreated, Sample.Size))
   
