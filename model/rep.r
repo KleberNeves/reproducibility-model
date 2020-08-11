@@ -54,7 +54,7 @@ perform.replications = function(input, rep.power = -1) {
     rep(rep.ests$Effect.Index, n.reps),
     replicate.exp, rep.df, separate.reps = input$repro.repeats)
   rep.df = rbindlist(rep.df)
-  browser()
+  
   rep.df = merge(rep.df,
                  rep.ests[, .(Effect.Index, rep.sample.size,
                               Original.Effect.Size, CI.low, CI.high, Biased)],
