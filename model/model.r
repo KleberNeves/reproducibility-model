@@ -108,7 +108,7 @@ sample.double = function (sdB, weightB = 0.5, k = 1) {
 }
 
 # Generates a new effect to be investigated
-generate.effect.size = function(p_sdA, p_weightB, p_meanB, p_sdB, eff.dist, interlab.variation = 0) {
+generate.effect.size = function(p_sdA, p_weightB, p_meanB, p_sdB, interlab.variation = 0) {
   eff = sample.from.dist(p_sdA, p_weightB, p_meanB, p_sdB)
   ind = nrow(effects.df) + 1
   effects.df <<- rbindlist(list(
@@ -128,7 +128,7 @@ pick.published.effect = function() {
 
 # Add interlab variation (picked from a normal distribution centered on the real effect)
 get.interlab.variation = function(interlab.variation) {
-   return (runif(n = 1, min = 0, max = interlab.variation))
+   return (interlab.variation) #runif(n = 1, min = 0, max = interlab.variation))
 }
 
 # Add interlab variation (picked from a normal distribution centered on the real effect)
@@ -205,7 +205,7 @@ sim.end.tracking = function(criteria, alpha) {
 perform.experiment = function(effect.index, input) {
   
   exp.effect = effects.df[Effect.Index == effect.index,]
-  
+
   # Necessário ser uma coluna???
   exp.effect$effect.size.here = add.interlab.variation(effect.index, input$interlab.var)
   

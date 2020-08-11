@@ -54,7 +54,7 @@ perform.replications = function(input, rep.power = -1) {
     rep(rep.ests$Effect.Index, n.reps),
     replicate.exp, rep.df, separate.reps = input$repro.repeats)
   rep.df = rbindlist(rep.df)
-  browser()
+  
   rep.df = merge(rep.df,
                  rep.ests[, .(Effect.Index, rep.sample.size,
                               Original.Effect.Size, CI.low, CI.high, Biased)],
@@ -148,7 +148,7 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
 }
 
 # For each experiment, calculates reproducibility measures
-calc.rep.measures = function(types = c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS", "Orig-in-MA-CI", "MA-in-Orig-CI"), min.effect.of.interest) {
+calc.rep.measures = function(types = c("Orig-in-RMA-PI", "RMA-SSS", "Orig-in-RMA-CI", "RMA-in-Orig-CI", "Orig-in-FMA-PI", "FMA-SSS", "Orig-in-FMA-CI", "FMA-in-Orig-CI", "VOTE-SSS"), min.effect.of.interest) {
   # For each set of experiments, calculates each reproducibility measure in types
   rates.df = replications.df[, evaluate.exp.rep(.SD, types = types,
                                                 min.effect.of.interest = min.effect.of.interest),
@@ -159,10 +159,14 @@ calc.rep.measures = function(types = c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS", "O
 # Computes many types of reproducibility measures from a set of replications
 evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   
-  MA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
-                             MeanTreated, SDTreated, Sample.Size))
+  RMA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
+                             MeanTreated, SDTreated, Sample.Size, type = "RE"))
   
-  result = ldply(types, reproducibility.success, rep.exps = rep.exps, MA = MA)
+  FMA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
+                             MeanTreated, SDTreated, Sample.Size, type = "FE"))
+  
+  result = ldply(types, reproducibility.success, rep.exps = rep.exps,
+                 RMA = RMA, FMA = FMA)
   original.estimate = rep.exps$Original.Effect.Size[1]
   real.effect = rep.exps$Real.Effect.Size[1]
   biased = rep.exps$Biased[1]
@@ -260,7 +264,8 @@ reproducibility.success = function (type, rep.exps, MA) {
 }
 
 # Runs and returns a meta analysis given the means, SDs and Ns
-run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated, n_treated) {
+run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated, n_treated,
+                  type = "RE") {
   ess = escalc(measure = "MD", m1i = as.numeric(mean_treated), 
                m2i = as.numeric(mean_control), sd1i = as.numeric(sd_treated), 
                sd2i = as.numeric(sd_control), n1i = as.numeric(n_treated), 
