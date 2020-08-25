@@ -124,10 +124,14 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   
   # exaggeration and signal error rate
   error.rates = cast.df[,
-                        .(Exaggeration_MA_x_Original = median(`Exaggeration (MA x Original)`, na.rm = T),
-                          Exaggeration_MA_x_Real = median(`Exaggeration (MA x Real)`, na.rm = T),
-                          Signal_Error_MA_x_Original = mean(`Signal Error (MA x Original)`, na.rm = T),
-                          Signal_Error_MA_x_Real = mean(`Signal Error (MA x Real)`, na.rm = T)),
+                        .(Exaggeration_RMA_x_Original = median(`Exaggeration (RMA x Original)`, na.rm = T),
+                          Exaggeration_RMA_x_Real = median(`Exaggeration (RMA x Real)`, na.rm = T),
+                          Signal_Error_RMA_x_Original = mean(`Signal Error (RMA x Original)`, na.rm = T),
+                          Signal_Error_RMA_x_Real = mean(`Signal Error (RMA x Real)`, na.rm = T),
+                          Exaggeration_FMA_x_Original = median(`Exaggeration (FMA x Original)`, na.rm = T),
+                          Exaggeration_FMA_x_Real = median(`Exaggeration (FMA x Real)`, na.rm = T),
+                          Signal_Error_FMA_x_Original = mean(`Signal Error (FMA x Original)`, na.rm = T),
+                          Signal_Error_FMA_x_Real = mean(`Signal Error (FMA x Real)`, na.rm = T)),
                         by = .(RepSet)]
   
   # Make long, bind and return
@@ -148,7 +152,7 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
 }
 
 # For each experiment, calculates reproducibility measures
-calc.rep.measures = function(types = c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS", "Orig-in-MA-CI", "MA-in-Orig-CI"), min.effect.of.interest) {
+calc.rep.measures = function(types = c("Orig-in-RMA-PI", "RMA-SSS", "Orig-in-RMA-CI", "RMA-in-Orig-CI", "Orig-in-FMA-PI", "FMA-SSS", "Orig-in-FMA-CI", "FMA-in-Orig-CI", "VOTE-SSS"), min.effect.of.interest) {
   # For each set of experiments, calculates each reproducibility measure in types
   rates.df = replications.df[, evaluate.exp.rep(.SD, types = types,
                                                 min.effect.of.interest = min.effect.of.interest),
@@ -159,10 +163,14 @@ calc.rep.measures = function(types = c("Orig-in-MA-PI", "MA-SSS", "VOTE-SSS", "O
 # Computes many types of reproducibility measures from a set of replications
 evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   
-  MA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
-                             MeanTreated, SDTreated, Sample.Size))
+  RMA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
+                             MeanTreated, SDTreated, Sample.Size, type = "RE"))
   
-  result = ldply(types, reproducibility.success, rep.exps = rep.exps, MA = MA)
+  FMA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
+                             MeanTreated, SDTreated, Sample.Size, type = "FE"))
+  
+  result = ldply(types, reproducibility.success, rep.exps = rep.exps,
+                 RMA = RMA, FMA = FMA)
   original.estimate = rep.exps$Original.Effect.Size[1]
   real.effect = rep.exps$Real.Effect.Size[1]
   biased = rep.exps$Biased[1]
@@ -201,51 +209,85 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
                             Measure = "Is.Biased",
                             Value = biased),
                  
-                 # Exaggeration (MA x Original)
+                 # Exaggeration (RMA x Original)
                  data.frame(Type = NA, LongType = NA,
-                            Measure = "Exaggeration (MA x Original)",
-                            Value = ifelse(MA$m$beta[[1]] / original.estimate <= 0,
-                                           NA, MA$m$beta[[1]] / original.estimate)),
-                 # Exaggeration (MA x Real)
+                            Measure = "Exaggeration (RMA x Original)",
+                            Value = ifelse(RMA$m$beta[[1]] / original.estimate <= 0,
+                                           NA, RMA$m$beta[[1]] / original.estimate)),
+                 # Exaggeration (RMA x Real)
                  data.frame(Type = NA, LongType = NA,
-                            Measure = "Exaggeration (MA x Real)",
-                            Value = ifelse(MA$m$beta[[1]] / real.effect <= 0,
-                                           NA, MA$m$beta[[1]] / real.effect)),
-                 # Signal (MA x Original)
+                            Measure = "Exaggeration (RMA x Real)",
+                            Value = ifelse(RMA$m$beta[[1]] / real.effect <= 0,
+                                           NA, RMA$m$beta[[1]] / real.effect)),
+                 # Signal (RMA x Original)
                  data.frame(Type = NA, LongType = NA,
-                            Measure = "Signal Error (MA x Original)",
-                            Value = MA$m$beta[[1]] / original.estimate <= 0 &
-                              MA$m$pval < 0.05),
-                 # Signal (MA x Real)
+                            Measure = "Signal Error (RMA x Original)",
+                            Value = RMA$m$beta[[1]] / original.estimate <= 0 &
+                              RMA$m$pval < 0.05),
+                 # Signal (RMA x Real)
                  data.frame(Type = NA, LongType = NA,
-                            Measure = "Signal Error (MA x Real)",
-                            Value = MA$m$beta[[1]] / real.effect <= 0 &
-                              MA$m$pval < 0.05)
+                            Measure = "Signal Error (RMA x Real)",
+                            Value = RMA$m$beta[[1]] / real.effect <= 0 &
+                              RMA$m$pval < 0.05),
+                 # Exaggeration (FMA x Original)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Exaggeration (FMA x Original)",
+                            Value = ifelse(FMA$m$beta[[1]] / original.estimate <= 0,
+                                           NA, FMA$m$beta[[1]] / original.estimate)),
+                 # Exaggeration (FMA x Real)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Exaggeration (FMA x Real)",
+                            Value = ifelse(FMA$m$beta[[1]] / real.effect <= 0,
+                                           NA, FMA$m$beta[[1]] / real.effect)),
+                 # Signal (FMA x Original)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Signal Error (FMA x Original)",
+                            Value = FMA$m$beta[[1]] / original.estimate <= 0 &
+                              FMA$m$pval < 0.05),
+                 # Signal (FMA x Real)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Signal Error (FMA x Real)",
+                            Value = FMA$m$beta[[1]] / real.effect <= 0 &
+                              FMA$m$pval < 0.05)
   )
   
   result
 }
 
 # Computes success or failure in a replication according to a give criterium
-reproducibility.success = function (type, rep.exps, MA) {
+reproducibility.success = function (type, rep.exps, RMA, FMA) {
   
-  if (type == "Orig-in-MA-PI") {
-    longtype = "original estimate is within the PI of the meta analysis"
-    value = rep.exps$Original.Effect.Size[1] > MA$pred$cr.lb &
-      rep.exps$Original.Effect.Size[1] < MA$pred$cr.ub
-  } else if (type == "Orig-in-MA-CI") {
-    longtype = "original estimate is within the CI of the meta analysis"
-    value = rep.exps$Original.Effect.Size[1] > MA$pred$ci.lb &
-      rep.exps$Original.Effect.Size[1] < MA$pred$ci.ub
-  } else if (type == "MA-SSS") {
-    longtype = "meta analysis is significant and in the same sense as the original"
-    value = rep.exps$Original.Effect.Size[1] / MA$m$beta[[1]] > 0 & MA$m$pval < 0.05
+  if (type == "Orig-in-RMA-PI") {
+    longtype = "original estimate is within the PI of the RE meta analysis"
+    value = rep.exps$Original.Effect.Size[1] > RMA$pred$cr.lb &
+      rep.exps$Original.Effect.Size[1] < RMA$pred$cr.ub
+  } else if (type == "Orig-in-RMA-CI") {
+    longtype = "original estimate is within the CI of the RE meta analysis"
+    value = rep.exps$Original.Effect.Size[1] > RMA$pred$ci.lb &
+      rep.exps$Original.Effect.Size[1] < RMA$pred$ci.ub
+  } else if (type == "RMA-SSS") {
+    longtype = "RE meta analysis is significant and in the same sense as the original"
+    value = rep.exps$Original.Effect.Size[1] / RMA$m$beta[[1]] > 0 & RMA$m$pval < 0.05
+  } else if (type == "RMA-in-Orig-CI") {
+    longtype = "RE meta analysis point estimate is within the CI of the original"
+    value = RMA$m$beta[[1]] > rep.exps$Original.CI.low[1] & RMA$m$beta[[1]] < rep.exps$Original.CI.high[1]
+  } else if (type == "Orig-in-FMA-PI") {
+    longtype = "original estimate is within the PI of the FE meta analysis"
+    value = rep.exps$Original.Effect.Size[1] > FMA$pred$cr.lb &
+      rep.exps$Original.Effect.Size[1] < FMA$pred$cr.ub
+  } else if (type == "Orig-in-FMA-CI") {
+    longtype = "original estimate is within the CI of the FE meta analysis"
+    value = rep.exps$Original.Effect.Size[1] > FMA$pred$ci.lb &
+      rep.exps$Original.Effect.Size[1] < FMA$pred$ci.ub
+  } else if (type == "FMA-SSS") {
+    longtype = "FE meta analysis is significant and in the same sense as the original"
+    value = rep.exps$Original.Effect.Size[1] / FMA$m$beta[[1]] > 0 & FMA$m$pval < 0.05
+  } else if (type == "FMA-in-Orig-CI") {
+    longtype = "FE meta analysis point estimate is within the CI of the original"
+    value = FMA$m$beta[[1]] > rep.exps$Original.CI.low[1] & FMA$m$beta[[1]] < rep.exps$Original.CI.high[1]
   } else if (type == "VOTE-SSS") {
     longtype = "majority of individual replications are significant and in the same sense"
     value = mean(rep.exps$p.value < 0.05) >= 0.5
-  } else if (type == "MA-in-Orig-CI") {
-    longtype = "meta analysis point estimate is within the CI of the original"
-    value = MA$m$beta[[1]] > rep.exps$Original.CI.low[1] & MA$m$beta[[1]] < rep.exps$Original.CI.high[1]
   } else {
     longtype = "NOT FOUND"
     value = NA
@@ -260,16 +302,23 @@ reproducibility.success = function (type, rep.exps, MA) {
 }
 
 # Runs and returns a meta analysis given the means, SDs and Ns
-run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated, n_treated) {
+run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated, n_treated, type = "RE") {
   ess = escalc(measure = "MD", m1i = as.numeric(mean_treated), 
                m2i = as.numeric(mean_control), sd1i = as.numeric(sd_treated), 
                sd2i = as.numeric(sd_control), n1i = as.numeric(n_treated), 
                n2i = as.numeric(n_control))
   tryCatch({
-    m = rma(yi = yi, vi = vi, data = ess, measure = "MD", method = "REML",
-            control = list(maxiter=1000))
-    pred = predict.rma(m, level = 0.95, digits = 3)
-    return (list(pred = pred, m = m))
+    if (type == "RE") {
+      m = rma(yi = yi, vi = vi, data = ess, measure = "MD", method = "REML",
+              control = list(maxiter=1000))
+      pred = predict.rma(m, level = 0.95, digits = 1)
+      return (list(pred = pred, m = m))
+    } else if (type == "FE") {
+      m = rma(yi = yi, vi = vi, data = ess, measure = "MD", method = "FE",
+              control = list(maxiter=1000))
+      pred = predict.rma(m, level = 0.95, digits = 1)
+      return (list(pred = pred, m = m))
+    }
   }, error = function(e) {
     message(e)
     return (NULL)
