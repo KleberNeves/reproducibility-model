@@ -124,10 +124,14 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   
   # exaggeration and signal error rate
   error.rates = cast.df[,
-                        .(Exaggeration_MA_x_Original = median(`Exaggeration (MA x Original)`, na.rm = T),
-                          Exaggeration_MA_x_Real = median(`Exaggeration (MA x Real)`, na.rm = T),
-                          Signal_Error_MA_x_Original = mean(`Signal Error (MA x Original)`, na.rm = T),
-                          Signal_Error_MA_x_Real = mean(`Signal Error (MA x Real)`, na.rm = T)),
+                        .(Exaggeration_RMA_x_Original = median(`Exaggeration (RMA x Original)`, na.rm = T),
+                          Exaggeration_RMA_x_Real = median(`Exaggeration (RMA x Real)`, na.rm = T),
+                          Signal_Error_RMA_x_Original = mean(`Signal Error (RMA x Original)`, na.rm = T),
+                          Signal_Error_RMA_x_Real = mean(`Signal Error (RMA x Real)`, na.rm = T),
+                          Exaggeration_FMA_x_Original = median(`Exaggeration (FMA x Original)`, na.rm = T),
+                          Exaggeration_FMA_x_Real = median(`Exaggeration (FMA x Real)`, na.rm = T),
+                          Signal_Error_FMA_x_Original = mean(`Signal Error (FMA x Original)`, na.rm = T),
+                          Signal_Error_FMA_x_Real = mean(`Signal Error (FMA x Real)`, na.rm = T)),
                         by = .(RepSet)]
   
   # Make long, bind and return
@@ -205,26 +209,46 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
                             Measure = "Is.Biased",
                             Value = biased),
                  
-                 # Exaggeration (MA x Original)
+                 # Exaggeration (RMA x Original)
                  data.frame(Type = NA, LongType = NA,
-                            Measure = "Exaggeration (MA x Original)",
-                            Value = ifelse(MA$m$beta[[1]] / original.estimate <= 0,
-                                           NA, MA$m$beta[[1]] / original.estimate)),
-                 # Exaggeration (MA x Real)
+                            Measure = "Exaggeration (RMA x Original)",
+                            Value = ifelse(RMA$m$beta[[1]] / original.estimate <= 0,
+                                           NA, RMA$m$beta[[1]] / original.estimate)),
+                 # Exaggeration (RMA x Real)
                  data.frame(Type = NA, LongType = NA,
-                            Measure = "Exaggeration (MA x Real)",
-                            Value = ifelse(MA$m$beta[[1]] / real.effect <= 0,
-                                           NA, MA$m$beta[[1]] / real.effect)),
-                 # Signal (MA x Original)
+                            Measure = "Exaggeration (RMA x Real)",
+                            Value = ifelse(RMA$m$beta[[1]] / real.effect <= 0,
+                                           NA, RMA$m$beta[[1]] / real.effect)),
+                 # Signal (RMA x Original)
                  data.frame(Type = NA, LongType = NA,
-                            Measure = "Signal Error (MA x Original)",
-                            Value = MA$m$beta[[1]] / original.estimate <= 0 &
-                              MA$m$pval < 0.05),
-                 # Signal (MA x Real)
+                            Measure = "Signal Error (RMA x Original)",
+                            Value = RMA$m$beta[[1]] / original.estimate <= 0 &
+                              RMA$m$pval < 0.05),
+                 # Signal (RMA x Real)
                  data.frame(Type = NA, LongType = NA,
-                            Measure = "Signal Error (MA x Real)",
-                            Value = MA$m$beta[[1]] / real.effect <= 0 &
-                              MA$m$pval < 0.05)
+                            Measure = "Signal Error (RMA x Real)",
+                            Value = RMA$m$beta[[1]] / real.effect <= 0 &
+                              RMA$m$pval < 0.05),
+                 # Exaggeration (FMA x Original)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Exaggeration (FMA x Original)",
+                            Value = ifelse(FMA$m$beta[[1]] / original.estimate <= 0,
+                                           NA, FMA$m$beta[[1]] / original.estimate)),
+                 # Exaggeration (FMA x Real)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Exaggeration (FMA x Real)",
+                            Value = ifelse(FMA$m$beta[[1]] / real.effect <= 0,
+                                           NA, FMA$m$beta[[1]] / real.effect)),
+                 # Signal (FMA x Original)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Signal Error (FMA x Original)",
+                            Value = FMA$m$beta[[1]] / original.estimate <= 0 &
+                              FMA$m$pval < 0.05),
+                 # Signal (FMA x Real)
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Signal Error (FMA x Real)",
+                            Value = FMA$m$beta[[1]] / real.effect <= 0 &
+                              FMA$m$pval < 0.05)
   )
   
   result
