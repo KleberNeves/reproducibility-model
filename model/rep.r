@@ -119,8 +119,8 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   cast.df = target.df %>% filter(is.na(Type) & !(Measure %in% c("Is.Biased", "Is.Real"))) %>%
     select(-Type, -LongType) %>%
     dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
-  sapply(3:4, function(x) { cast.df[[x]] <<- as.numeric(cast.df[[x]]) })
-  sapply(5:6, function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
+  sapply(c(3,4,7,8), function(x) { cast.df[[x]] <<- as.numeric(cast.df[[x]]) })
+  sapply(c(5,6,9,10), function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
   
   # exaggeration and signal error rate
   error.rates = cast.df[,
@@ -152,7 +152,7 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
 }
 
 # For each experiment, calculates reproducibility measures
-calc.rep.measures = function(types = c("Orig-in-RMA-PI", "RMA-SSS", "Orig-in-RMA-CI", "RMA-in-Orig-CI", "Orig-in-FMA-PI", "FMA-SSS", "Orig-in-FMA-CI", "FMA-in-Orig-CI", "VOTE-SSS"), min.effect.of.interest) {
+calc.rep.measures = function(types = c("Orig-in-RMA-PI", "RMA-SSS", "Orig-in-RMA-CI", "RMA-in-Orig-CI", "FMA-SSS", "Orig-in-FMA-CI", "FMA-in-Orig-CI", "VOTE-SSS"), min.effect.of.interest) {
   # For each set of experiments, calculates each reproducibility measure in types
   rates.df = replications.df[, evaluate.exp.rep(.SD, types = types,
                                                 min.effect.of.interest = min.effect.of.interest),
@@ -164,10 +164,10 @@ calc.rep.measures = function(types = c("Orig-in-RMA-PI", "RMA-SSS", "Orig-in-RMA
 evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   
   RMA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
-                             MeanTreated, SDTreated, Sample.Size, type = "RE"))
+                              MeanTreated, SDTreated, Sample.Size, type = "RE"))
   
   FMA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
-                             MeanTreated, SDTreated, Sample.Size, type = "FE"))
+                              MeanTreated, SDTreated, Sample.Size, type = "FE"))
   
   result = ldply(types, reproducibility.success, rep.exps = rep.exps,
                  RMA = RMA, FMA = FMA)
@@ -271,10 +271,6 @@ reproducibility.success = function (type, rep.exps, RMA, FMA) {
   } else if (type == "RMA-in-Orig-CI") {
     longtype = "RE meta analysis point estimate is within the CI of the original"
     value = RMA$m$beta[[1]] > rep.exps$Original.CI.low[1] & RMA$m$beta[[1]] < rep.exps$Original.CI.high[1]
-  } else if (type == "Orig-in-FMA-PI") {
-    longtype = "original estimate is within the PI of the FE meta analysis"
-    value = rep.exps$Original.Effect.Size[1] > FMA$pred$cr.lb &
-      rep.exps$Original.Effect.Size[1] < FMA$pred$cr.ub
   } else if (type == "Orig-in-FMA-CI") {
     longtype = "original estimate is within the CI of the FE meta analysis"
     value = rep.exps$Original.Effect.Size[1] > FMA$pred$ci.lb &
