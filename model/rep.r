@@ -313,7 +313,7 @@ run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated,
               control = list(maxiter=1000))
       pred = predict.rma(m, level = 0.95, digits = 1)
       return (list(pred = pred, m = m))
-    } else if (type = "FE") {
+    } else if (type == "FE") {
       m = rma(yi = yi, vi = vi, data = ess, measure = "MD", method = "FE",
               control = list(maxiter=1000))
       pred = predict.rma(m, level = 0.95, digits = 1)

@@ -270,12 +270,13 @@ scientist.action = function(input) {
   # Bias
   ### With a given probability, if the result is not significant,
   ### change the estimated effect size to be just over the threshold
-  if (runif(1,0,1) < input$bias.level) {
+  if (!xp$Published & runif(1,0,1) < input$bias.level) {
     while (xp$p.value > xp$Alpha) {
       # Redo the experiment until it is significant
       xp = perform.experiment(effect.index, input)
-      xp$Biased = T
     }
+    xp$Biased = T
+    xp$Published = T
   }
   
   # Increases the row count, allocates memory if the original allocation is full
@@ -330,6 +331,9 @@ run.simulation = function(input) {
       give.fb = T
     }
   }
+  
+  # Cut non-filled tail of the data table
+  estimates.df = estimates.df[!is.na(Published),]
 
   # Performs replications
   feedback.message("Replicating experiments ...")
