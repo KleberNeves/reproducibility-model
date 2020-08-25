@@ -264,17 +264,23 @@ reproducibility.success = function (type, rep.exps, MA) {
 }
 
 # Runs and returns a meta analysis given the means, SDs and Ns
-run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated, n_treated,
-                  type = "RE") {
+run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated, n_treated, type = "RE") {
   ess = escalc(measure = "MD", m1i = as.numeric(mean_treated), 
                m2i = as.numeric(mean_control), sd1i = as.numeric(sd_treated), 
                sd2i = as.numeric(sd_control), n1i = as.numeric(n_treated), 
                n2i = as.numeric(n_control))
   tryCatch({
-    m = rma(yi = yi, vi = vi, data = ess, measure = "MD", method = "REML",
-            control = list(maxiter=1000))
-    pred = predict.rma(m, level = 0.95, digits = 3)
-    return (list(pred = pred, m = m))
+    if (type == "RE") {
+      m = rma(yi = yi, vi = vi, data = ess, measure = "MD", method = "REML",
+              control = list(maxiter=1000))
+      pred = predict.rma(m, level = 0.95, digits = 1)
+      return (list(pred = pred, m = m))
+    } else if (type = "FE") {
+      m = rma(yi = yi, vi = vi, data = ess, measure = "MD", method = "FE",
+              control = list(maxiter=1000))
+      pred = predict.rma(m, level = 0.95, digits = 1)
+      return (list(pred = pred, m = m))
+    }
   }, error = function(e) {
     message(e)
     return (NULL)
