@@ -231,25 +231,39 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
 }
 
 # Computes success or failure in a replication according to a give criterium
-reproducibility.success = function (type, rep.exps, MA) {
+reproducibility.success = function (type, rep.exps, RMA, FMA) {
   
-  if (type == "Orig-in-MA-PI") {
-    longtype = "original estimate is within the PI of the meta analysis"
-    value = rep.exps$Original.Effect.Size[1] > MA$pred$cr.lb &
-      rep.exps$Original.Effect.Size[1] < MA$pred$cr.ub
-  } else if (type == "Orig-in-MA-CI") {
-    longtype = "original estimate is within the CI of the meta analysis"
-    value = rep.exps$Original.Effect.Size[1] > MA$pred$ci.lb &
-      rep.exps$Original.Effect.Size[1] < MA$pred$ci.ub
-  } else if (type == "MA-SSS") {
-    longtype = "meta analysis is significant and in the same sense as the original"
-    value = rep.exps$Original.Effect.Size[1] / MA$m$beta[[1]] > 0 & MA$m$pval < 0.05
+  if (type == "Orig-in-RMA-PI") {
+    longtype = "original estimate is within the PI of the RE meta analysis"
+    value = rep.exps$Original.Effect.Size[1] > RMA$pred$cr.lb &
+      rep.exps$Original.Effect.Size[1] < RMA$pred$cr.ub
+  } else if (type == "Orig-in-RMA-CI") {
+    longtype = "original estimate is within the CI of the RE meta analysis"
+    value = rep.exps$Original.Effect.Size[1] > RMA$pred$ci.lb &
+      rep.exps$Original.Effect.Size[1] < RMA$pred$ci.ub
+  } else if (type == "RMA-SSS") {
+    longtype = "RE meta analysis is significant and in the same sense as the original"
+    value = rep.exps$Original.Effect.Size[1] / RMA$m$beta[[1]] > 0 & RMA$m$pval < 0.05
+  } else if (type == "RMA-in-Orig-CI") {
+    longtype = "RE meta analysis point estimate is within the CI of the original"
+    value = RMA$m$beta[[1]] > rep.exps$Original.CI.low[1] & RMA$m$beta[[1]] < rep.exps$Original.CI.high[1]
+  } else if (type == "Orig-in-FMA-PI") {
+    longtype = "original estimate is within the PI of the FE meta analysis"
+    value = rep.exps$Original.Effect.Size[1] > FMA$pred$cr.lb &
+      rep.exps$Original.Effect.Size[1] < FMA$pred$cr.ub
+  } else if (type == "Orig-in-FMA-CI") {
+    longtype = "original estimate is within the CI of the FE meta analysis"
+    value = rep.exps$Original.Effect.Size[1] > FMA$pred$ci.lb &
+      rep.exps$Original.Effect.Size[1] < FMA$pred$ci.ub
+  } else if (type == "FMA-SSS") {
+    longtype = "FE meta analysis is significant and in the same sense as the original"
+    value = rep.exps$Original.Effect.Size[1] / FMA$m$beta[[1]] > 0 & FMA$m$pval < 0.05
+  } else if (type == "FMA-in-Orig-CI") {
+    longtype = "FE meta analysis point estimate is within the CI of the original"
+    value = FMA$m$beta[[1]] > rep.exps$Original.CI.low[1] & FMA$m$beta[[1]] < rep.exps$Original.CI.high[1]
   } else if (type == "VOTE-SSS") {
     longtype = "majority of individual replications are significant and in the same sense"
     value = mean(rep.exps$p.value < 0.05) >= 0.5
-  } else if (type == "MA-in-Orig-CI") {
-    longtype = "meta analysis point estimate is within the CI of the original"
-    value = MA$m$beta[[1]] > rep.exps$Original.CI.low[1] & MA$m$beta[[1]] < rep.exps$Original.CI.high[1]
   } else {
     longtype = "NOT FOUND"
     value = NA
