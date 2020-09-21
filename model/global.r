@@ -127,7 +127,7 @@ preset.scenarios = c(
 shiny_running = TRUE
 
 sanitize_shiny_input = function (a.input) {
-  if (shiny_running) {
+  if ("reactivevalues" %in% class(a.input)) {
     return (reactiveValuesToList(a.input))
   } else {
     return (a.input)

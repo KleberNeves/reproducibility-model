@@ -3,6 +3,7 @@ library(metafor)
 
 # Returns a data frame with the results of replications
 perform.replications = function(input, rep.power = -1) {
+
   # Filters the published estimates
   rep.ests = estimates.df[Published == T & p.value <= Alpha]
   
@@ -48,7 +49,7 @@ perform.replications = function(input, rep.power = -1) {
     
     rbindlist(exps)
   }
-  
+
   # Runs a number of replications for each effect 
   rep.df = lapply(
     rep(rep.ests$Effect.Index, n.reps),
