@@ -5,6 +5,7 @@ setup.model = function(input) {
   
   effects.df <<- data.table()
   
+  # It uses a lot more memory to store the inputs for every row, but changing this requires refactoring all of the evaluation code, which relies on these columns existing
   estimates.df <<- data.table(
     Effect.Index = numeric(m),
     Real.Effect.Size = numeric(m),
@@ -43,9 +44,8 @@ setup.model = function(input) {
   # % Above minimum
   p2 = mean(a.sample >= input$min.effect.of.interest)
   
-  # browser()
   # Calculate sample size in the input
-  # In this version, you don't set the sample size, only the power
+  # As of now, you don't set the sample size, only the power
   # the other one will be calculated from the other
   
   # Mean effect size for the effects above the minimum of interest
@@ -60,9 +60,9 @@ setup.model = function(input) {
 
   x = input
   
-  print(input$typical.sample.size)
-  print(input$typical.power)
-  print(mes)
+  # print(input$typical.sample.size)
+  # print(input$typical.power)
+  # print(mes)
   x["loadDataFile"] = NULL
   x = as.data.frame(as.matrix(unlist(x)), stringsAsFactors = F) %>%
     tibble::rownames_to_column()
@@ -342,6 +342,22 @@ run.simulation = function(input) {
   
   if (input$calc.repro) {
     replications.df <<- perform.replications(input, rep.power = 0.95)
+  }
+  
+  if (shiny_running) {
+    feedback.message("Evaluating the literature ...")
+    
+    new.measures = make.evaluation.tests()
+    
+    if (input$scenarioName == "") {
+      new.measures$scenario = input$scenario 
+    } else {
+      new.measures$scenario = input$scenarioName
+    }
+    
+    evdf = rbind(evdf, new.measures)
+    
+    eval.df <<- evdf
   }
   
   feedback.message("... and ... Finished!", "error")
