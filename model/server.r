@@ -71,8 +71,6 @@ server <- function(input, output, session) {
   
   # Outcomes table
   make.table = eventReactive(c(input$show.published.only, input$runButton, input$loadDataFile, input$updateButton), {
-    # browser()
-    
     x = eval.df %>%
       # Get only the tendencies, not the errors
       filter(Statistic %in% c("Rate", "Median")) %>%
@@ -91,6 +89,18 @@ server <- function(input, output, session) {
       
     x = x %>% dcast(Measure ~ Published.Only, value.var = "Value") %>% select(1,3,2)
     colnames(x) = c("Measure","Published","All")
+
+    if (nrow(rep.eval.df) > 0) {
+      repx = rep.eval.df %>%
+        filter(variable == "ReproRate", N == "All") %>%
+        filter(Type %in% c("Orig-in-RMA-PI","RMA-SSS","VOTE-SSS")) %>%
+        group_by(Type) %>%
+        summarise(Published = median(value), All = NA) %>%
+        mutate(Measure = paste0("Reproducibility Rate: ", Type)) %>%
+        select(4,2,3)
+      
+      x = rbind(x, repx)
+    }
     
     x
   })
@@ -235,5 +245,4 @@ server <- function(input, output, session) {
     make.param.table()
   })
 
-  
 }

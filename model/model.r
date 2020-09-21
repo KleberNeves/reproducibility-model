@@ -34,6 +34,7 @@ setup.model = function(input) {
   estimates.rowcount <<- 0
   
   eval.df <<- data.frame()
+  rep.eval.df <<- data.frame()
   
   # Generating a sample from the underlying distribution
   dist.n = 100000
@@ -355,6 +356,11 @@ run.simulation = function(input) {
     evdf = rbind(evdf, new.measures)
     
     eval.df <<- evdf
+  }
+  
+  if (input$calc.repro) {
+    feedback.message("Evaluating replications ...")
+    rep.eval.df <<- make.rep.evaluation.tests(input$min.effect.of.interest)
   }
   
   feedback.message("... and ... Finished!", "error")
