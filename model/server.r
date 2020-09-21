@@ -3,6 +3,7 @@ server <- function(input, output, session) {
   
   # Obtain output data
   outcome.dist = eventReactive(c(input$show.published.only, input$show.biased, input$runButton, input$updateButton), {
+    if (nrow(estimates.df) == 0) { return (data.frame()) }
     x = estimates.df %>% mutate(`Above Minimum` = abs(Real.Effect.Size) > Min.Interesting.Effect) %>%
       select(1:7, `Above Minimum`, Biased, Published)
     if (input$show.published.only) {
@@ -71,6 +72,8 @@ server <- function(input, output, session) {
   
   # Outcomes table
   make.table = eventReactive(c(input$show.published.only, input$runButton, input$loadDataFile, input$updateButton), {
+    if (nrow(eval.df) == 0) { return (data.frame()) }
+    
     x = eval.df %>%
       # Get only the tendencies, not the errors
       filter(Statistic %in% c("Rate", "Median")) %>%
@@ -107,6 +110,8 @@ server <- function(input, output, session) {
   
   # Parameters table
   make.param.table = eventReactive(c(input$runButton, input$updateButton), {
+    if (nrow(estimates.df) == 0) { return (data.frame()) }
+    
     x = param.df
     # x = x %>% select(2,1)
     x$Parameter = as.character(x$Parameter)
