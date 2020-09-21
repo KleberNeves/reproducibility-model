@@ -134,6 +134,8 @@ sanitize_shiny_input = function (a.input) {
   }
 }
 
+preset.scenarios = c("", "High powered, low bias", "Low powered, high bias")
+
 # Source model code
 wd = getwd()
 setwd(dirname(parent.frame(2)$ofile))
