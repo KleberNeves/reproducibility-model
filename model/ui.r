@@ -155,7 +155,6 @@ ui <- fluidPage(
                 checkboxInput('show.biased', "Show biased results?", value = T),
                 checkboxInput('show.density', "Show density?", value = F),
                 checkboxInput('show.histogram', "Show histogram?", value = T),
-                checkboxInput('show.dotplot', "Show dotplot?", value = F),
                 br(),
                 actionButton("updateButton", "Update Results")
          )

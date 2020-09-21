@@ -21,8 +21,7 @@ server <- function(input, output, session) {
   })
  
   # Output plot with estimates
-  make.plot = eventReactive(c(input$show.published.only, input$show.density, input$show.biased,
- input$show.dotplot, input$show.histogram, input$runButton, input$updateButton), {
+  make.plot = eventReactive(c(input$show.published.only, input$show.density, input$show.biased, input$show.histogram, input$runButton, input$updateButton), {
     # browser()
     d = outcome.dist()
     
@@ -39,11 +38,6 @@ server <- function(input, output, session) {
       
       if (input$show.density) {
         p = p + geom_density(size = 0.6)
-      }
-      
-      if (input$show.dotplot) {
-        p = p + geom_dotplot(bins = 50, dotsize = 0.6, aes(fill = `Above Minimum`), alpha = 0.75) +
-          labs(fill = "Real Above Minimum?")
       }
       
       p = p +
@@ -77,35 +71,26 @@ server <- function(input, output, session) {
   
   # Outcomes table
   make.table = eventReactive(c(input$show.published.only, input$runButton, input$loadDataFile, input$updateButton), {
-    browser()
+    # browser()
     
-    target = c("", "PPVMean", "NPVMean")#, "TypeIErrorRateMean", "TypeIIErrorRateMean")
-    
-    x = eval.df[eval.df$variable %in% target, ]
-    x[x$variable == "PPVMean", "variable"] = "PPV"
-    x[x$variable == "NPVMean", "variable"] = "NPV"
-    x[x$variable == "TypeIErrorRateMean", "variable"] = "TypeIErrorRate"
-    x[x$variable == "TypeIIErrorRateMean", "variable"] = "TypeIIErrorRate"
-    x$Measure = gsub("Reproducibility Rate ", "", x$Measure)
-    x$Measure[x$variable != ""] = paste(x$variable[x$variable != ""], x$Measure[x$variable != ""])
-    
-    x = x %>% dcast(Measure ~ Published.Effects.Only., value.var = "Value")
-    x = x %>% select(1,3,2) %>% rename(Published = `TRUE`, All = `FALSE`)
-
-    target = c("True Positives", "True Negatives", "False Positives", "False Negatives", "Signal Errors", "Exaggeration Factor", "Signal Errors (Effects > Min)", "Exaggeration Factor (Effects > Min)", "Positive Predictive Value", "Negative Predictive Value", "Discovery Effectiveness")#,"PPV (BRI)", "PPV (BRI) All Papers", "PPV (SSS)", "PPV (SSS) All Papers", "PPV (ST)", "PPV (ST) All Papers", "NPV (BRI)", "NPV (BRI) All Papers", "NPV (SSS)", "NPV (SSS) All Papers", "NPV (ST)", "NPV (ST) All Papers", "TypeIErrorRate (BRI)", "TypeIErrorRate (BRI) All Papers", "TypeIErrorRate (SSS)", "TypeIErrorRate (SSS) All Papers", "TypeIErrorRate (ST)", "TypeIErrorRate (ST) All Papers", "TypeIIErrorRate (BRI)", "TypeIIErrorRate (BRI) All Papers", "TypeIIErrorRate (SSS)", "TypeIIErrorRate (SSS) All Papers", "TypeIIErrorRate (ST)", "TypeIIErrorRate (ST) All Papers") 
-
-    x[2:3] = round(x[2:3], 2)
-    mt = match(target, x$Measure)
-    x = x[mt[!is.na(mt)],]
-    
-    if (input$calc.repro) {
-      x2 = eval.df[eval.df$variable != "",]
-      x2 = x2 %>% dcast(Measure ~ variable, value.var = "Value")
-      x2$Text = paste(round(x2$MeanValue, 2), " [", round(x2$CI.low, 2), ", ", round(x2$CI.high, 2), "]", sep = "")
-      x2 = x2 %>% select(Measure, Text) %>% rename(Published = Text) %>% mutate(All = NA)
+    x = eval.df %>%
+      # Get only the tendencies, not the errors
+      filter(Statistic %in% c("Rate", "Median")) %>%
+      select(Measure, Value, Published.Only) %>%
+      # Remove the non-standard measures that we added just to understand the model
+      filter(!(Measure %in% c("True Positives","Signal Error (Effects > Min)",
+                              "Exaggeration Factor (Effects > Min)",
+                              "Positive Predictive Value")))
       
-      x = rbind(x,x2)
-    }
+    # Change names of the not pretty-named measures
+    x$Measure = recode(x$Measure,
+                       `DiscoveredES` = "Median Discovered Effect Size",
+                       `Positive Predictive Value (Correct Signal)` = "Positive Predictive Value",
+                       `True Positives (Correct Signal)` = "True Positives",
+                       )
+      
+    x = x %>% dcast(Measure ~ Published.Only, value.var = "Value") %>% select(1,3,2)
+    colnames(x) = c("Measure","Published","All")
     
     x
   })
@@ -115,7 +100,7 @@ server <- function(input, output, session) {
     x = param.df
     # x = x %>% select(2,1)
     x$Parameter = as.character(x$Parameter)
-    x$Parameter = as.character(car::recode(x$Parameter, "'n.scientists' = '---'; 'neg.incentive' = 'Negative Publication Incentive'; 'runButton' = '---'; 'measure.error' = 'Measurement Error'; 'rep.incentive' = 'Replication Incentive'; 'loadFilename' = '---'; 'scenarioName' = '---'; 'min.effect.of.interest' = 'Minimum Effect of Interest'; 'sim.end.value' = 'Simulation Stop Value'; 'show.histogram' = '---'; 'dist.param.1' = 'dist.param.1'; 'dist.param.2' = 'dist.param.2'; 'scenario' = '---'; 'show.published.only' = '---'; 'typical.sample.size' = 'Sample Size'; 'typical.power' = 'Power'; 'interlab.var' = 'Interlab Variation'; 'downloadData' = '---'; 'show.density' = '---'; 'alpha.threshold' = 'Alpha'; 'how.sim.ends' = 'How the Simulation Ends'; 'show.dotplot' = '---'; 'bias.level' = 'Bias'; 'uploadData' = '---'; 'saveFilename' = '---'; 'sdA' = 'SD of Distribution A'; 'sdB' = 'SD of Distribution B'; 'meanB' = 'Mean of Distribution B'; 'weightB' = 'Weight of Distribution B'"))
+    x$Parameter = as.character(car::recode(x$Parameter, "'n.scientists' = '---'; 'neg.incentive' = 'Negative Publication Incentive'; 'runButton' = '---'; 'measure.error' = 'Measurement Error'; 'rep.incentive' = 'Replication Incentive'; 'loadFilename' = '---'; 'scenarioName' = '---'; 'min.effect.of.interest' = 'Minimum Effect of Interest'; 'sim.end.value' = 'Simulation Stop Value'; 'show.histogram' = '---'; 'dist.param.1' = 'dist.param.1'; 'dist.param.2' = 'dist.param.2'; 'scenario' = '---'; 'show.published.only' = '---'; 'typical.sample.size' = 'Sample Size'; 'typical.power' = 'Power'; 'interlab.var' = 'Interlab Variation'; 'downloadData' = '---'; 'show.density' = '---'; 'alpha.threshold' = 'Alpha'; 'how.sim.ends' = 'How the Simulation Ends'; 'bias.level' = 'Bias'; 'uploadData' = '---'; 'saveFilename' = '---'; 'sdA' = 'SD of Distribution A'; 'sdB' = 'SD of Distribution B'; 'meanB' = 'Mean of Distribution B'; 'weightB' = 'Weight of Distribution B'"))
     # browser()
     target = c("SD of Distribution A", "Weight of Distribution B", "SD of Distribution B",
                "Mean of Distribution B", "Minimum Effect of Interest", "% Above minimum",
