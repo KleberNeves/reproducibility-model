@@ -77,7 +77,7 @@ server <- function(input, output, session) {
   
   # Outcomes table
   make.table = eventReactive(c(input$show.published.only, input$runButton, input$loadDataFile, input$updateButton), {
-    # browser()
+    browser()
     
     target = c("", "PPVMean", "NPVMean")#, "TypeIErrorRateMean", "TypeIIErrorRateMean")
     

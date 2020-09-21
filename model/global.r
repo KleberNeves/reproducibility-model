@@ -134,12 +134,14 @@ sanitize_shiny_input = function (a.input) {
   }
 }
 
-preset.scenarios = c("", "High powered, low bias", "Low powered, high bias")
+preset.scenarios = c("",
+                     "Bimodal, high powered, low bias",
+                     "Bimodal, low powered, high bias",
+                     "Normal, high powered, low bias",
+                     "Normal, low powered, high bias"
+                     )
 
 # Source model code
-wd = getwd()
-setwd(dirname(parent.frame(2)$ofile))
 source("model.r")
 source("eval.r")
 source("rep.r")
-setwd(wd)

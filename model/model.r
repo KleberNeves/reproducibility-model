@@ -336,7 +336,9 @@ run.simulation = function(input) {
   estimates.df = estimates.df[!is.na(Published),]
 
   # Performs replications
-  feedback.message("Replicating experiments ...")
+  if (input$calc.repro) {
+    feedback.message("Replicating experiments ...")
+  }
   
   if (input$calc.repro) {
     replications.df <<- perform.replications(input, rep.power = 0.95)

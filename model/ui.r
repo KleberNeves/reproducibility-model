@@ -12,7 +12,7 @@ ui <- fluidPage(
        
        fluidRow(
          tags$head(
-           tags$style(HTML('#runButton{color:blue}'))
+           tags$style(HTML('#runButton{background-color:darkgray; font-weight:bold}'))
          ),
          column(3,
                 h4("Underlying Distribution of Effect Sizes"),
@@ -51,9 +51,11 @@ ui <- fluidPage(
                 
                 sliderInput('alpha.threshold', 'Alpha', 
                             min = 0.01, max = 0.1, value = 0.05, 
-                            step = 0.01, round = -2, ticks = F),
+                            step = 0.01, round = -2, ticks = F)
                 
-                hr(),
+         ),
+         
+         column(3,
                 
                 h4("Other Parameters"),
                 
@@ -63,15 +65,7 @@ ui <- fluidPage(
                 
                 sliderInput('bias.level', 'Bias Chance', 
                             min = 0, max = 1, value = 0, 
-                            step = 0.05, round = -2, ticks = F)
-                
-         ),
-         
-         column(3,
-                
-                sliderInput('rep.incentive', 'Replication Incentive',
-                            min = 0, max = 1, value = 0, 
-                            step = 0.1, round = -1, ticks = F),
+                            step = 0.05, round = -2, ticks = F),
                 
                 sliderInput('neg.incentive', 'Negative Results Incentive', 
                             min = 0, max = 1, value = 0, 
@@ -89,7 +83,7 @@ ui <- fluidPage(
                             selectize = F),
                 
                 sliderInput('sim.end.value', 'Set the value to stop the simulation.', 
-                            min = 00, max = 5000, value = 25, 
+                            min = 00, max = 5000, value = 200, 
                             step = 100, round = 0, ticks = F)
                 
          ),
