@@ -193,8 +193,6 @@ sim.end.tracking = function(criteria, alpha) {
     v = estimates.df[Published == T, .N]
   } else if (criteria == "At a given number of positive published effects") {
     v = estimates.df[Published == T & p.value <= alpha, .N]
-  } else if (criteria == "At a given number of unique positive published effects") {
-    v = length(unique(estimates.df[Published == T & p.value <= alpha, Effect.Index]))
   } else if (criteria == "At a given total sample size") {
     v = sum(estimates.df$Sample.Size)
   }

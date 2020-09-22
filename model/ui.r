@@ -78,8 +78,7 @@ ui <- fluidPage(
                 selectInput('how.sim.ends', "How should the simulation end?",
                             choices = c("At a given number of published effects",
                                         "At a given total sample size",
-                                        "At a given number of positive published effects",
-                                        "At a given number of unique positive published effects"),
+                                        "At a given number of positive published effects"),
                             selectize = F),
                 
                 sliderInput('sim.end.value', 'Set the value to stop the simulation.', 
