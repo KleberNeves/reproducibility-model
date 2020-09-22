@@ -3,20 +3,20 @@
 make.evaluation.tests = function() {
   df = data.frame()
 
-  pb = T; df = rbind(df, minimum.effect.count(pb))
-  pb = F; df = rbind(df, minimum.effect.count(pb))
+  pb = T; df = rbind(df, true.positive.rate(pb))
+  pb = F; df = rbind(df, true.positive.rate(pb))
   
-  pb = T; df = rbind(df, minimum.effect.count.signal(pb))
-  pb = F; df = rbind(df, minimum.effect.count.signal(pb))
+  pb = T; df = rbind(df, true.positive.rate.signal(pb))
+  pb = F; df = rbind(df, true.positive.rate.signal(pb))
   
-  pb = T; df = rbind(df, true.negatives(pb))
-  pb = F; df = rbind(df, true.negatives(pb))
+  pb = T; df = rbind(df, true.negative.rate(pb))
+  pb = F; df = rbind(df, true.negative.rate(pb))
   
-  pb = T; df = rbind(df, typeI.error.rate(pb))
-  pb = F; df = rbind(df, typeI.error.rate(pb))
+  pb = T; df = rbind(df, false.positive.rate(pb))
+  pb = F; df = rbind(df, false.positive.rate(pb))
   
-  pb = T; df = rbind(df, typeII.error.rate(pb))
-  pb = F; df = rbind(df, typeII.error.rate(pb))
+  pb = T; df = rbind(df, false.negative.rate(pb))
+  pb = F; df = rbind(df, false.negative.rate(pb))
   
   pb = T; df = rbind(df, typeS.error.rate(pb))
   pb = F; df = rbind(df, typeS.error.rate(pb))
@@ -64,7 +64,7 @@ prop.sep = function (p, n) {
 }
 
 # TYPE I/FALSE POSITIVE ERROR RATE
-typeI.error.rate = function(published.only = T) {
+false.positive.rate = function(published.only = T) {
   
   result = data.frame(Measure = "False Positives",
                       Statistic = c("Rate", "SEP", "N"),
@@ -93,7 +93,7 @@ typeI.error.rate = function(published.only = T) {
 }
 
 # TYPE II/FALSE NEGATIVE ERROR RATE
-typeII.error.rate = function(published.only = T) {
+false.negative.rate = function(published.only = T) {
   
   result = data.frame(Measure = "False Negatives",
                       Statistic = c("Rate", "SEP", "N"),
@@ -335,7 +335,7 @@ neg.pred.value = function(published.only = T) {
 }
 
 # TRUE POSITIVES
-minimum.effect.count = function(published.only = T) {
+true.positive.rate = function(published.only = T) {
   
   result = data.frame(Measure = "True Positives",
                       Statistic = c("Rate", "SEP", "N"),
@@ -364,7 +364,7 @@ minimum.effect.count = function(published.only = T) {
 }
 
 # TRUE POSITIVES (CONDITIONAL ON SIGNAL BEING RIGHT)
-minimum.effect.count.signal = function(published.only = T) {
+true.positive.rate.signal = function(published.only = T) {
   
   result = data.frame(Measure = "True Positives (Correct Signal)",
                       Statistic = c("Rate", "SEP", "N"),
@@ -397,7 +397,7 @@ minimum.effect.count.signal = function(published.only = T) {
 
 
 # TRUE NEGATIVES
-true.negatives = function(published.only = T) {
+true.negative.rate = function(published.only = T) {
   
   result = data.frame(Measure = "True Negatives",
                       Statistic = c("Rate", "SEP", "N"),
