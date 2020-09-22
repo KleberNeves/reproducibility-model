@@ -332,9 +332,9 @@ run.simulation = function(input) {
       give.fb = T
     }
   }
-  
+
   # Cut non-filled tail of the data table
-  estimates.df = estimates.df[!is.na(Published),]
+  estimates.df <<- estimates.df[!is.na(Published),]
 
   # Performs replications
   if (input$calc.repro) {

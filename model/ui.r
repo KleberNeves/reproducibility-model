@@ -83,7 +83,7 @@ ui <- fluidPage(
                             selectize = F),
                 
                 sliderInput('sim.end.value', 'Set the value to stop the simulation.', 
-                            min = 00, max = 5000, value = 50, 
+                            min = 00, max = 5000, value = 20, 
                             step = 100, round = 0, ticks = F)
                 
          ),
