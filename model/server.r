@@ -73,21 +73,21 @@ server <- function(input, output, session) {
   # Outcomes table
   make.table = eventReactive(c(input$show.published.only, input$runButton, input$loadDataFile, input$updateButton), {
     if (nrow(eval.df) == 0) { return (data.frame()) }
-    
+    # browser()
     x = eval.df %>%
       # Get only the tendencies, not the errors
       filter(Statistic %in% c("Rate", "Median")) %>%
       select(Measure, Value, Published.Only) %>%
       # Remove the non-standard measures that we added just to understand the model
-      filter(!(Measure %in% c("True Positives","Signal Error (Effects > Min)",
+      filter(!(Measure %in% c("True Positives (Correct Signal)","Signal Error (Effects > Min)",
                               "Exaggeration Factor (Effects > Min)",
-                              "Positive Predictive Value")))
+                              "Positive Predictive Value (Correct Signal)")))
       
     # Change names of the not pretty-named measures
     x$Measure = recode(x$Measure,
                        `DiscoveredES` = "Median Discovered Effect Size",
-                       `Positive Predictive Value (Correct Signal)` = "Positive Predictive Value",
-                       `True Positives (Correct Signal)` = "True Positives",
+                       `Positive Predictive Value` = "Positive Predictive Value",
+                       `True Positives` = "True Positives",
                        )
       
     x = x %>% dcast(Measure ~ Published.Only, value.var = "Value") %>% select(1,3,2)

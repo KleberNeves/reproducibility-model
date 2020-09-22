@@ -2,7 +2,7 @@
 # General function that calculates all rates, in all cases
 make.evaluation.tests = function() {
   df = data.frame()
-  
+
   pb = T; df = rbind(df, minimum.effect.count(pb))
   pb = F; df = rbind(df, minimum.effect.count(pb))
   
@@ -70,7 +70,7 @@ typeI.error.rate = function(published.only = T) {
                       Statistic = c("Rate", "SEP", "N"),
                       Value = c(NA, NA, 0),
                       Published.Only = published.only)
-  
+  # browser()
   if (published.only) {
     ests = estimates.df %>% filter(Published == T)
   } else {
@@ -291,14 +291,12 @@ pos.pred.value.signal = function(published.only = T) {
   # Wrong Signal
   ests$signalError = (ests$Real.Effect.Size / ests$Estimated.Effect.Size < 0)
   
-  ests = ests %>% filter(!signalError)
-  
   if (nrow(ests) == 0) {
     return (result)
   }
   
   # Positive Predictive Value = True Positives / (True Positives + False Positives)
-  ests$isTP = (abs(ests$Real.Effect.Size) >= ests$Min.Interesting.Effect) & (ests$p.value <= ests$Alpha)
+  ests$isTP = (abs(ests$Real.Effect.Size) >= ests$Min.Interesting.Effect) & (ests$p.value <= ests$Alpha) & !ests$signalError
   
   tps = nrow(ests %>% filter(isTP))
   
@@ -386,15 +384,9 @@ minimum.effect.count.signal = function(published.only = T) {
   # Wrong Signal
   ests$signalError = (ests$Real.Effect.Size / ests$Estimated.Effect.Size < 0)
   
-  ests = ests %>% filter(!signalError)
-  
-  if (nrow(ests) == 0) {
-    return (result)
-  }
-  
   # True positives
   ests$isDiscovery = (abs(ests$Real.Effect.Size) >= ests$Min.Interesting.Effect) &
-    (ests$p.value <= ests$Alpha)
+    (ests$p.value <= ests$Alpha) & !ests$signalError
   
   count = nrow(ests %>% filter(isDiscovery)) / nrow(ests)
   
