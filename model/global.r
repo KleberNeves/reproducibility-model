@@ -9,6 +9,7 @@ library(metafor)
 library(zip)
 library(pwr)
 library(data.table)
+library(readr)
 
 possible.outcomes = c(
   "False Positives",
@@ -140,6 +141,11 @@ preset.scenarios = c("",
                      "Continuous, high power, low bias",
                      "Continuous, low power, high bias"
                      )
+
+# Help text
+overview_help_text = read_file("../help/overview.html")
+parameters_help_text = read_file("../help/parameters.html")
+outcomes_help_text = read_file("../help/outcomes.html")
 
 # Source model code
 source("model.r")

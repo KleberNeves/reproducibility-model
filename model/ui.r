@@ -165,16 +165,18 @@ ui <- fluidPage(
                 
                 sidebarPanel(
                   h4("Overview"),
-                  p(
-                    HTML(
-                      "Aqui teria o texto da ajuda, de forma que as pessoas tenham uma ideia de como o modelo funciona e o que dá pra fazer com ele. <br><br><b>Teste negrito</b> <br> Ao lado elas veriam nas abas a descrição de cada parâmetro e outcome. Parece que o básico de <pre>HTML</pre> funciona bem aqui, então dá pra escrever a ajuda em algum outro editor WYSIWYG e colar aqui.")
-                  )
+                  
+                  p(HTML(overview_help_text))
                 ),
                 
                 mainPanel(
                   tabsetPanel(
-                    tabPanel("Parameters"),
-                    tabPanel("Outcomes")
+                    tabPanel("Parameters",
+                        p(HTML(parameters_help_text))
+                    ),
+                    tabPanel("Outcomes",
+                        p(HTML(outcomes_help_text))                             
+                    )
                   )
                 )
               )

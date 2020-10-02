@@ -1,0 +1,11 @@
+<p>This model was developed to simulate a scientific literature and study how different parameters impact outcomes such as the positive predictive value, errors in effect size estimations and reproducibility rates.</p>
+
+<p>It is possible to vary the underlying effect size distribution (implemented as a combination of two normal distributions), properties of study design (minimum effect size of interest, power and sample size) and publishing behaviour (bias and incentive for publishing negative results).</p>
+
+<p>Whenever scientists perform experiments, an effect size is drawn from the underlying distribution. This effect size represents the difference between means of two experimental groups. Samples are generated for the two groups with an equal standard deviation of 1. A two-sided equal variance t-test is performed to obtain a p-value. Results are considered significant if the p-value is below the <i>Alpha</i> parameter.</p>
+
+<p>Significant positive results are always published, while non-significant negative results have a publishing probability determined by the <i>Negative Results Incentive</i> parameter. Additionally, non-significant results have a probability of being converted to significant results equal to the <i>Bias chance</i> parameter. In this case, the experiment is repeated until it yields samples that generate significant results.</p>
+
+<p>Experiments are performed until the termination criterium is met: after a total number of samples are generated, a total number of (positive) published effects are published or a total number of unique published effects when considering scientific replications. Different outcomes from the resulting literature are then evaluated, such as the signal error rate, size of magnitude errors and positive predictive values. Results can be downloaded as a zip file, or previously generated results can be visualized by browsing and loading a zip file.</p>
+
+<p>It is also possible to calculate a reproducibility rate, inspired by the approach used in the <a href="https://www.reprodutibilidade.bio.br">Brazilian Reproducibility Initiative</a>. This is done by performing 3 replications of each experiment and conducting a random meta-analysis. Replication success is reported by three separate measures.</p>

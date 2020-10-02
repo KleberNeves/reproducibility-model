@@ -1,0 +1,19 @@
+<br>
+<h4>Underlying Distribution of Effect Sizes</h4>
+
+<p>The underlying effect size distribution is modelled as a mixture of two normal distributions, A and B, and can be visualized through a dynamic graph.</p>
+
+<p>Distribution A is always centred at zero, while Distribution B is centred at <b>Mean of Distribution B</b>. Their standard deviation can be varied with the <b>SD of Distribution A</b> and <b>SD of Distribution B</b> parameters. Although normal distributions are technically not defined with a standard deviation of zero, this is still possible in the model (all values sampled from the distribution will be exactly equal to the mean).</p>
+
+<p>The relative contribution of distributions A and B can be varied with the <b>Weight of Distribution B</b> parameter. If zero is used, only distribution A is present; while if 1 is chosen, only distribution B is used.</p>
+ 
+<br>
+<h4>Power, Alpha and Sample Size</h4>
+
+<p>In this model, effect size values are continuous, but calculating metrics such as the false positive rate or positive predictive value requires a notion of "true" and "false" effects. To this end, you can set the <b>Minimum Effect of Interest</b> parameter and "True" effects will be defined as those larger than this minimum. For sample size calculations, simulated scientists aim for the specified <b>Power</b> to find significant results at the specified <b>Alpha</b> level. The standard deviation for the sample is always 1 and for the power calculation, the effect size to be detected is the mean of the effect sizes above the <b>Minimum Effect of Interest</b> in the underlying distribution.</p>
+ 
+<br>
+<h4>Other Parameters</h4>
+
+<p><b>Interlab Variation</b> is an additional variability added to experiments for each laboratory (measured in standard deviations). A new effect size is sampled for each lab centred at the original effect size with standard deviation equal to the <b>Interlab Variation</b>. This new effect size replaces the original and is used to obtain the samples for the experimental group.
+<b>Bias Chance</b> is the probability that non-significant results are "converted" to significant results - the intention is to model practices such as p-hacking and unknown researcher degrees of freedom. This is achieved by repeating the experiment with new samples until a significant result is reached. <b>Negative Results Incentive</b> is the probability that non-significant results are published. If it is set to 0, we have full publication bias and only positive results are published.</p>
