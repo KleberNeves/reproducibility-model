@@ -142,6 +142,10 @@ server <- function(input, output, session) {
     x = x %>% dcast(Measure ~ Published.Only, value.var = "Value") %>% select(1,3,2)
     colnames(x) = c("Measure","Published","All")
 
+    target = c("True Positives", "True Negatives", "False Positives", "False Negatives", "Exaggeration Factor", "Signal Error", "Median Discovered Effect Size", "Positive Predictive Value", "Negative Predictive Value")
+    x = x[which(x$Measure %in% target),]
+    x = x[match(target, x$Measure),]
+    
     if (nrow(rep.eval.df) > 0) {
       repx = rep.eval.df %>%
         filter(variable == "ReproRate", N == "All") %>%
@@ -165,7 +169,7 @@ server <- function(input, output, session) {
     # x = x %>% select(2,1)
     x$Parameter = as.character(x$Parameter)
     x$Parameter = as.character(car::recode(x$Parameter, "'n.scientists' = '---'; 'neg.incentive' = 'Negative Publication Incentive'; 'runButton' = '---'; 'loadFilename' = '---'; 'scenarioName' = '---'; 'min.effect.of.interest' = 'Minimum Effect of Interest'; 'sim.end.value' = 'Simulation Stop Value'; 'show.histogram' = '---'; 'dist.param.1' = 'dist.param.1'; 'dist.param.2' = 'dist.param.2'; 'scenario' = '---'; 'show.published.only' = '---'; 'typical.sample.size' = 'Sample Size'; 'typical.power' = 'Power'; 'interlab.var' = 'Interlab Variation'; 'downloadData' = '---'; 'show.density' = '---'; 'alpha.threshold' = 'Alpha'; 'how.sim.ends' = 'How the Simulation Ends'; 'bias.level' = 'Bias'; 'uploadData' = '---'; 'saveFilename' = '---'; 'sdA' = 'SD of Distribution A'; 'sdB' = 'SD of Distribution B'; 'meanB' = 'Mean of Distribution B'; 'weightB' = 'Weight of Distribution B'"))
-    # browser()
+
     target = c("SD of Distribution A", "Weight of Distribution B", "SD of Distribution B",
                "Mean of Distribution B", "Minimum Effect of Interest", "% Above minimum",
                "Power", "Sample Size", "Alpha",
@@ -210,7 +214,7 @@ server <- function(input, output, session) {
       fs = c()
       tmpdir = tempdir()
       fn = paste(tmpdir,"/estimates.csv", sep = ""); fs = c(fs, fn)
-      write.table(x = presynthesis.df, file = fn, sep = ";", row.names = F)
+      write.table(x = estimates.df, file = fn, sep = ";", row.names = F)
       fn = paste(tmpdir,"/eval.csv", sep = ""); fs = c(fs, fn)
       write.table(x = eval.df, file = fn, sep = ";", row.names = F)
       fn = paste(tmpdir,"/pars.csv", sep = ""); fs = c(fs, fn)
@@ -234,17 +238,12 @@ server <- function(input, output, session) {
     tmpdir = tempdir()
     unzip(zipfile = inFile$datapath, exdir = tmpdir)
 
-    presynthesis.df <<- read.table(
+    estimates.df <<- read.table(
       file = paste(tmpdir, "/estimates.csv", sep = ""), sep = ";", stringsAsFactors = F, header = T)
     eval.df <<- read.table(
       file = paste(tmpdir, "/eval.csv", sep = ""), sep = ";", stringsAsFactors = F, header = T)
     param.df <<- read.table(
       file = paste(tmpdir, "/pars.csv", sep = ""), sep = ";", stringsAsFactors = F, header = T)
-    
-    t = "Synthesizing ..."
-    print(t); if (shiny_running) { showNotification(t, type = "default") }
-    
-    estimates.df <<- synthesize(presynthesis.df)
     
     t = "Loaded!"
     print(t); if (shiny_running) { showNotification(t, type = "default") }
