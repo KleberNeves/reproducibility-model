@@ -91,8 +91,7 @@ ui <- fluidPage(
                 h4("Setup"),
                 
                 selectInput('scenario', "Pick a preset scenario (optional)",
-                            choices = preset.scenarios, selected = "Small (for quick testing)",
-                            selectize = F),
+                            choices = preset.scenarios, selectize = F),
                 
                 textInput("scenarioName",
                           "Choose a name for your simulation (optional)", ""),

@@ -135,10 +135,10 @@ sanitize_shiny_input = function (a.input) {
 }
 
 preset.scenarios = c("",
-                     "Bimodal, high powered, low bias",
-                     "Bimodal, low powered, high bias",
-                     "Normal, high powered, low bias",
-                     "Normal, low powered, high bias"
+                     "Two peaks, high power, low bias",
+                     "Two peaks, low power, high bias",
+                     "Continuous, high power, low bias",
+                     "Continuous, low power, high bias"
                      )
 
 # Source model code

@@ -70,6 +70,55 @@ server <- function(input, output, session) {
     p
   })
   
+  # Handle preset scenarios
+  observeEvent(input$scenario, {
+    if (input$scenario == "Two peaks, high power, low bias") {
+      updateSliderInput(session, 'sdA', value = 0.1)
+      updateSliderInput(session, 'weightB', value = 0.5)
+      updateSliderInput(session, 'sdB', value = 0.1)
+      updateSliderInput(session, 'meanB', value = 1)
+      updateSliderInput(session, 'min.effect.of.interest', value = 0.5)
+      updateSliderInput(session, 'typical.power', value = 0.8)
+      updateSliderInput(session, 'alpha.threshold', value = 0.05)
+      updateSliderInput(session, 'interlab.var', value = 0)
+      updateSliderInput(session, 'bias.level', value = 0)
+      updateSliderInput(session, 'neg.incentive', value = 0)
+    } else if (input$scenario == "Two peaks, low power, high bias") {
+      updateSliderInput(session, 'sdA', value = 0.1)
+      updateSliderInput(session, 'weightB', value = 0.5)
+      updateSliderInput(session, 'sdB', value = 0.1)
+      updateSliderInput(session, 'meanB', value = 1)
+      updateSliderInput(session, 'min.effect.of.interest', value = 0.5)
+      updateSliderInput(session, 'typical.power', value = 0.2)
+      updateSliderInput(session, 'alpha.threshold', value = 0.05)
+      updateSliderInput(session, 'interlab.var', value = 0)
+      updateSliderInput(session, 'bias.level', value = 0.5)
+      updateSliderInput(session, 'neg.incentive', value = 0)
+    } else if (input$scenario == "Continuous, high power, low bias") {
+      updateSliderInput(session, 'sdA', value = 1)
+      updateSliderInput(session, 'weightB', value = 0)
+      updateSliderInput(session, 'sdB', value = 0)
+      updateSliderInput(session, 'meanB', value = 0)
+      updateSliderInput(session, 'min.effect.of.interest', value = 0.5)
+      updateSliderInput(session, 'typical.power', value = 0.8)
+      updateSliderInput(session, 'alpha.threshold', value = 0.05)
+      updateSliderInput(session, 'interlab.var', value = 0)
+      updateSliderInput(session, 'bias.level', value = 0)
+      updateSliderInput(session, 'neg.incentive', value = 0)
+    } else if (input$scenario == "Continuous, low power, high bias") {
+      updateSliderInput(session, 'sdA', value = 1)
+      updateSliderInput(session, 'weightB', value = 0)
+      updateSliderInput(session, 'sdB', value = 0)
+      updateSliderInput(session, 'meanB', value = 0)
+      updateSliderInput(session, 'min.effect.of.interest', value = 0.5)
+      updateSliderInput(session, 'typical.power', value = 0.2)
+      updateSliderInput(session, 'alpha.threshold', value = 0.05)
+      updateSliderInput(session, 'interlab.var', value = 0)
+      updateSliderInput(session, 'bias.level', value = 0.5)
+      updateSliderInput(session, 'neg.incentive', value = 0)
+    }
+  })
+  
   # Outcomes table
   make.table = eventReactive(c(input$show.published.only, input$runButton, input$loadDataFile, input$updateButton), {
     if (nrow(eval.df) == 0) { return (data.frame()) }
