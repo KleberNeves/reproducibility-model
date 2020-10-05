@@ -80,13 +80,14 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   }
   
   # Summarises replication results (mean, min, max)
-  
   # For each criteria
   cast.df = target.df %>% filter(!is.na(Type)) %>%
-    dcast(Effect.Index + Type + LongType + RepSet ~ Measure, value.var = "Value")
+    pivot_wider(id_cols = c("Effect.Index", "Type", "LongType", "RepSet"),
+                names_from = "Measure", values_from = "Value")
   sapply(5:13, function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
   
   # overall replication rate, PPV/precision, recall
+  cast.df = data.table(cast.df)
   rep.rates = cast.df[, .(ReproRate = mean(Success),
                           Specificity = sum(TN) / (sum(TN) + sum(FP)),
                           Sensitivity = sum(TP) / (sum(TP) + sum(FN)),
@@ -96,43 +97,65 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   
   # Prevalence of the literature (only of the target)
   cast.df = target.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
-    dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
+    pivot_wider(id_cols = c("Effect.Index", "RepSet"),
+                names_from = "Measure", values_from = "Value")
   cast.df$Is.Real = as.logical(cast.df$Is.Real)
+  
+  cast.df = data.table(cast.df)
   other.rates = cast.df[, .(Prev_Sample = mean(Is.Real)), by = .(RepSet)]
   
   cast.df = target.df %>% filter(Measure == "Is.Biased") %>% select(-Type, -LongType) %>%
-    dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
+    pivot_wider(id_cols = c("Effect.Index", "RepSet"),
+                names_from = "Measure", values_from = "Value")
   cast.df$Is.Biased = as.logical(cast.df$Is.Biased)
+  
+  cast.df = data.table(cast.df)
   other.rates.bias = cast.df[, .(Prev_SampleBias = mean(!Is.Biased)), by = .(RepSet)]
   
   # Prevalence of the literature (whole literature)
   cast.df = rates.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
-    dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
+    pivot_wider(id_cols = c("Effect.Index", "RepSet"),
+                names_from = "Measure", values_from = "Value")
   cast.df$Is.Real = as.logical(cast.df$Is.Real)
+  
+  cast.df = data.table(cast.df)
   other.rates.whole = cast.df[, .(Prev_Whole = mean(Is.Real)), by = .(RepSet)]
   
   cast.df = rates.df %>% filter(Measure == "Is.Biased") %>% select(-Type, -LongType) %>%
-    dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
+    pivot_wider(id_cols = c("Effect.Index", "RepSet"),
+                names_from = "Measure", values_from = "Value")
   cast.df$Is.Biased = as.logical(cast.df$Is.Biased)
+  
+  cast.df = data.table(cast.df)
   other.rates.whole.bias = cast.df[, .(Prev_WholeBias = mean(!Is.Biased)), by = .(RepSet)]
   
   # General (criteria-independent)
   cast.df = target.df %>% filter(is.na(Type) & !(Measure %in% c("Is.Biased", "Is.Real"))) %>%
     select(-Type, -LongType) %>%
-    dcast(Effect.Index + RepSet ~ Measure, value.var = "Value")
+    pivot_wider(id_cols = c("Effect.Index", "RepSet"),
+                names_from = "Measure", values_from = "Value")
   sapply(c(3,4,7,8), function(x) { cast.df[[x]] <<- as.numeric(cast.df[[x]]) })
   sapply(c(5,6,9,10), function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
   
   # exaggeration and signal error rate
+  cast.df = data.table(cast.df)
   error.rates = cast.df[,
-                        .(Exaggeration_RMA_x_Original = median(`Exaggeration (RMA x Original)`, na.rm = T),
-                          Exaggeration_RMA_x_Real = median(`Exaggeration (RMA x Real)`, na.rm = T),
-                          Signal_Error_RMA_x_Original = mean(`Signal Error (RMA x Original)`, na.rm = T),
-                          Signal_Error_RMA_x_Real = mean(`Signal Error (RMA x Real)`, na.rm = T),
-                          Exaggeration_FMA_x_Original = median(`Exaggeration (FMA x Original)`, na.rm = T),
-                          Exaggeration_FMA_x_Real = median(`Exaggeration (FMA x Real)`, na.rm = T),
-                          Signal_Error_FMA_x_Original = mean(`Signal Error (FMA x Original)`, na.rm = T),
-                          Signal_Error_FMA_x_Real = mean(`Signal Error (FMA x Real)`, na.rm = T)),
+                        .(Exaggeration_RMA_x_Original = median(`Exaggeration (RMA x Original)`,
+                                                               na.rm = T),
+                          Exaggeration_RMA_x_Real = median(`Exaggeration (RMA x Real)`,
+                                                           na.rm = T),
+                          Signal_Error_RMA_x_Original = mean(`Signal Error (RMA x Original)`,
+                                                             na.rm = T),
+                          Signal_Error_RMA_x_Real = mean(`Signal Error (RMA x Real)`,
+                                                         na.rm = T),
+                          Exaggeration_FMA_x_Original = median(`Exaggeration (FMA x Original)`,
+                                                               na.rm = T),
+                          Exaggeration_FMA_x_Real = median(`Exaggeration (FMA x Real)`,
+                                                           na.rm = T),
+                          Signal_Error_FMA_x_Original = mean(`Signal Error (FMA x Original)`,
+                                                             na.rm = T),
+                          Signal_Error_FMA_x_Real = mean(`Signal Error (FMA x Real)`,
+                                                         na.rm = T)),
                         by = .(RepSet)]
   
   # Make long, bind and return
