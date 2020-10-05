@@ -138,7 +138,7 @@ server <- function(input, output, session) {
                        `Positive Predictive Value` = "Positive Predictive Value",
                        `True Positives` = "True Positives",
                        )
-    browser()
+    
     x = x %>%
       pivot_wider(id_cols = "Measure", names_from = "Published.Only", values_from = "Value") %>%
       select(1,2,3)
@@ -150,7 +150,7 @@ server <- function(input, output, session) {
     
     if (nrow(rep.eval.df) > 0) {
       repx = rep.eval.df %>%
-        filter(variable == "ReproRate", N == "All") %>%
+        filter(name == "ReproRate", N == "All") %>%
         filter(Type %in% c("Orig-in-RMA-PI","RMA-SSS","VOTE-SSS")) %>%
         group_by(Type) %>%
         summarise(Published = median(value), All = NA) %>%

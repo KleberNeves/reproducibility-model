@@ -136,12 +136,13 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
                         by = .(RepSet)]
   
   # Make long, bind and return
-  error.rates = melt(error.rates, id.vars = "RepSet")
-  other.rates = melt(other.rates, id.vars = "RepSet")
-  other.rates.bias = melt(other.rates.bias, id.vars = "RepSet")
-  other.rates.whole = melt(other.rates.whole, id.vars = "RepSet")
-  other.rates.whole.bias = melt(other.rates.whole.bias, id.vars = "RepSet")
-  rep.rates = melt(rep.rates, id.vars = c("RepSet", "Type", "LongType"))
+  
+  error.rates = pivot_longer(error.rates, cols = -"RepSet")
+  other.rates = pivot_longer(other.rates, cols = -"RepSet")
+  other.rates.bias = pivot_longer(other.rates.bias, cols = -"RepSet")
+  other.rates.whole = pivot_longer(other.rates.whole, cols = -"RepSet")
+  other.rates.whole.bias = pivot_longer(other.rates.whole.bias, cols = -"RepSet")
+  rep.rates = pivot_longer(rep.rates, cols = -c("RepSet", "Type", "LongType"))
   
   other.rates = rbind(error.rates, other.rates, other.rates.whole, other.rates.bias, other.rates.whole.bias)
   other.rates$Type = NA
@@ -195,7 +196,7 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   result$TNBias = !result$Success & biased
   
   # Cast to long format (seems convoluted, there should be a better way)
-  result = melt(result, id.vars = c("Type", "LongType"))
+  result = pivot_longer(result, cols = -c("Type", "LongType"))
   colnames(result) = c("Type", "LongType", "Measure", "Value")
   result$Value = as.character(result$Value)
   
