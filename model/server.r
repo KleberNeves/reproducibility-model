@@ -138,8 +138,10 @@ server <- function(input, output, session) {
                        `Positive Predictive Value` = "Positive Predictive Value",
                        `True Positives` = "True Positives",
                        )
-      
-    x = x %>% dcast(Measure ~ Published.Only, value.var = "Value") %>% select(1,3,2)
+    browser()
+    x = x %>%
+      pivot_wider(id_cols = "Measure", names_from = "Published.Only", values_from = "Value") %>%
+      select(1,2,3)
     colnames(x) = c("Measure","Published","All")
 
     target = c("True Positives", "True Negatives", "False Positives", "False Negatives", "Exaggeration Factor", "Signal Error", "Median Discovered Effect Size", "Positive Predictive Value", "Negative Predictive Value")
