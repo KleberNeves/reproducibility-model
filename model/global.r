@@ -143,9 +143,9 @@ preset.scenarios = c("",
                      )
 
 # Help text
-overview_help_text = read_file("../help/overview.html")
-parameters_help_text = read_file("../help/parameters.html")
-outcomes_help_text = read_file("../help/outcomes.html")
+overview_help_text = read_file("./help/overview.html")
+parameters_help_text = read_file("./help/parameters.html")
+outcomes_help_text = read_file("./help/outcomes.html")
 
 # Source model code
 source("model.r")
