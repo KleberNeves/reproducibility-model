@@ -15,6 +15,9 @@ make.evaluation.tests = function() {
   pb = T; df = rbind(df, false.positive.rate(pb))
   pb = F; df = rbind(df, false.positive.rate(pb))
   
+  pb = T; df = rbind(df, false.positive.rate.signal(pb))
+  pb = F; df = rbind(df, false.positive.rate.signal(pb))
+  
   pb = T; df = rbind(df, false.negative.rate(pb))
   pb = F; df = rbind(df, false.negative.rate(pb))
   
@@ -70,7 +73,7 @@ false.positive.rate = function(published.only = T) {
                       Statistic = c("Rate", "SEP", "N"),
                       Value = c(NA, NA, 0),
                       Published.Only = published.only)
-  # browser()
+  
   if (published.only) {
     ests = estimates.df %>% filter(Published == T)
   } else {
@@ -84,6 +87,42 @@ false.positive.rate = function(published.only = T) {
   # False Positives
   ests$isError = (abs(ests$Real.Effect.Size) < ests$Min.Interesting.Effect) &
     (ests$p.value <= ests$Alpha)
+  
+  error.count = nrow(ests %>% filter(isError))
+  
+  value = error.count / nrow(ests)
+  result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
+  return (result)
+}
+
+# TYPE I/FALSE POSITIVE ERROR RATE + TRUE POSITIVES WITH THE WRONG SIGNAL
+false.positive.rate.signal = function(published.only = T) {
+  
+  result = data.frame(Measure = "False Positives Signal",
+                      Statistic = c("Rate", "SEP", "N"),
+                      Value = c(NA, NA, 0),
+                      Published.Only = published.only)
+  
+  if (published.only) {
+    ests = estimates.df %>% filter(Published == T)
+  } else {
+    ests = estimates.df
+  }
+  
+  if (nrow(ests) == 0) {
+    return (result)
+  }
+  
+  # Wrong Signal
+  ests$signalError = (ests$Real.Effect.Size / ests$Estimated.Effect.Size < 0)
+  
+  # False Positives + True Positives with wrong signal
+  ests$isError = (ests$p.value <= ests$Alpha) & (
+    abs(ests$Real.Effect.Size) < ests$Min.Interesting.Effect
+  ) | (
+    abs(ests$Real.Effect.Size) >= ests$Min.Interesting.Effect &
+     ests$signalError
+  )
   
   error.count = nrow(ests %>% filter(isError))
   
@@ -259,13 +298,8 @@ pos.pred.value = function(published.only = T) {
     return (result)
   }
   
-  # Positive Predictive Value = True Positives / (True Positives + False Positives)
-  ests$isTP = (abs(ests$Real.Effect.Size) >= ests$Min.Interesting.Effect) &
-    (ests$p.value <= ests$Alpha)
+  value = true.positive.rate(published.only) / (true.positive.rate(published.only) + false.positive.rate(published.only))
   
-  tps = nrow(ests %>% filter(isTP))
-  
-  value = tps / nrow(ests)
   result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
@@ -295,12 +329,8 @@ pos.pred.value.signal = function(published.only = T) {
     return (result)
   }
   
-  # Positive Predictive Value = True Positives / (True Positives + False Positives)
-  ests$isTP = (abs(ests$Real.Effect.Size) >= ests$Min.Interesting.Effect) & (ests$p.value <= ests$Alpha) & !ests$signalError
+  value = true.positive.rate.signal(published.only) / (true.positive.rate.signal(published.only) + false.positive.rate.signal(published.only))
   
-  tps = nrow(ests %>% filter(isTP))
-  
-  value = tps / nrow(ests)
   result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
@@ -363,10 +393,10 @@ true.positive.rate = function(published.only = T) {
   return (result)
 }
 
-# TRUE POSITIVES (CONDITIONAL ON SIGNAL BEING RIGHT)
+# TRUE POSITIVES WITH THE RIGHT SIGNAL
 true.positive.rate.signal = function(published.only = T) {
   
-  result = data.frame(Measure = "True Positives (Correct Signal)",
+  result = data.frame(Measure = "True Positives Signal",
                       Statistic = c("Rate", "SEP", "N"),
                       Value = c(NA, NA, 0),
                       Published.Only = published.only)
@@ -384,9 +414,9 @@ true.positive.rate.signal = function(published.only = T) {
   # Wrong Signal
   ests$signalError = (ests$Real.Effect.Size / ests$Estimated.Effect.Size < 0)
   
-  # True positives
+  # True positives with correct signal
   ests$isDiscovery = (abs(ests$Real.Effect.Size) >= ests$Min.Interesting.Effect) &
-    (ests$p.value <= ests$Alpha) & !ests$signalError
+    (ests$p.value <= ests$Alpha) & (!ests$signalError)
   
   count = nrow(ests %>% filter(isDiscovery)) / nrow(ests)
   
@@ -394,7 +424,6 @@ true.positive.rate.signal = function(published.only = T) {
   result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
 }
-
 
 # TRUE NEGATIVES
 true.negative.rate = function(published.only = T) {
