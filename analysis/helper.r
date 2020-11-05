@@ -9,9 +9,9 @@ library(reshape2)
 library(stringr)
 
 # Defining the functions to extract simulation results from the zip files
-get.figure.data.eval = function(datapath) {
+get.figure.data.eval = function(datapath, only_published = T) {
   zips = paste(datapath, list.files(datapath, ".zip$"), sep ="")
-  df = ldply(zips, get.data.from.zip.eval, .progress = "text")
+  df = ldply(zips, get.data.from.zip.eval, only_published = only_published, .progress = "text")
   df
 }
 
@@ -21,7 +21,7 @@ get.figure.data.rep = function(datapath) {
   df
 }
 
-get.data.from.zip.eval = function(zipfile) {
+get.data.from.zip.eval = function(zipfile, only_published = T) {
   
   # There's probably a better way of doing this, but I'll figure it out later,
   # performance is not critical at this point
@@ -35,7 +35,7 @@ get.data.from.zip.eval = function(zipfile) {
   estimates.df = read.table(
     file = paste(tmpdir, "/estimates.csv", sep = ""), sep = ";", stringsAsFactors = F, header = T)
   
-  eval.df = make.evaluation.tests() %>% filter(Published.Only)
+  eval.df = make.evaluation.tests() %>% filter(Published.Only == only_published)
   
   eval.df = dcast(eval.df, . ~ Measure + Statistic, value.var = "Value")
   param.df = dcast(param.df, . ~ Parameter, value.var = "Value")
