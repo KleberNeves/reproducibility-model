@@ -298,7 +298,9 @@ pos.pred.value = function(published.only = T) {
     return (result)
   }
   
-  value = true.positive.rate(published.only) / (true.positive.rate(published.only) + false.positive.rate(published.only))
+  tps = true.positive.rate(published.only)$Value[1]
+  fps = false.positive.rate(published.only)$Value[1]
+  value = tps / (tps + fps)
   
   result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
@@ -307,7 +309,7 @@ pos.pred.value = function(published.only = T) {
 # POSITIVE PREDICTIVE VALUE/1 - FALSE FINDING RATE (CONDITIONAL ON SIGNAL BEING RIGHT)
 pos.pred.value.signal = function(published.only = T) {
   
-  result = data.frame(Measure = "Positive Predictive Value (Correct Signal)",
+  result = data.frame(Measure = "Positive Predictive Value Signal",
                       Statistic = c("Rate", "SEP", "N"),
                       Value = c(NA, NA, 0),
                       Published.Only = published.only)
@@ -322,14 +324,9 @@ pos.pred.value.signal = function(published.only = T) {
     return (result)
   }
   
-  # Wrong Signal
-  ests$signalError = (ests$Real.Effect.Size / ests$Estimated.Effect.Size < 0)
-  
-  if (nrow(ests) == 0) {
-    return (result)
-  }
-  
-  value = true.positive.rate.signal(published.only) / (true.positive.rate.signal(published.only) + false.positive.rate.signal(published.only))
+  tps = true.positive.rate.signal(published.only)$Value[1]
+  fps = false.positive.rate.signal(published.only)$Value[1]
+  value = tps / (tps + fps)
   
   result$Value = c(value, prop.sep(value, nrow(ests)), nrow(ests))
   return (result)
