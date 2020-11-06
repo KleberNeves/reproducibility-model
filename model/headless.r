@@ -1,7 +1,10 @@
 # Function that runs a simulation and saves the results
-hlrun = function(a.input, saveFilename) {
+# a.input - a list with the input parameters
+# saveFilename - the name of the zip file where results will be saved
+# fix.bias.prop - if NULL, bias works through bias.level. If a number (between 0 and 1), the final published estimates will have exactly this proportion of biased results published.
+hlrun = function(a.input, saveFilename, fix.bias.prop = FALSE) {
   shiny_running <<- FALSE
-  run.simulation(a.input)
+  run.simulation(a.input, fix.bias.prop)
   dir.create(results_folder)
   
   # Zipping to export results
@@ -39,15 +42,15 @@ hlrun = function(a.input, saveFilename) {
   t = "Saved!"; print(t)
 }
 
-hlrun_comb = function(comb) {
+hlrun_comb = function(comb, fix.bias.prop = FALSE) {
+  # Assumes i is a counter existing outside its scope (need to change this)
   i <<- i + 1
-  # browser()
   k = baseline.input
   for (n in colnames(comb)) {
     k[n] = as.list(comb)[n]
   }
   k
-  hlrun(k, paste("Scenario", i))
+  hlrun(k, paste("Scenario", i), fix.bias.prop)
 }
 
 save.folder.sim.info = function (sim.folder,
@@ -81,7 +84,6 @@ make.sweep.df = function (run.list) {
 }
 
 get_par_sweep = function(a.par) {
-  # browser()
   sweep = run.list
   
   # sdAB is a helper to specify both sdA and sdB to the same values, simultaneously varying

@@ -254,9 +254,16 @@ perform.experiment = function(effect.index, input) {
 }
 
 # Executes the simulated scientist behavior
-scientist.action = function(input) {
+scientist.action = function(input, fix.bias.prop) {
   # If simulation ended, return
-  if (reached.sim.end(input$sim.end.value, input$how.sim.ends, input$alpha.threshold)) {
+  if (fix.bias.prop) {
+    n_biased = estimates.df[Published == T & p.value <= Alpha & Biased == T, .N]
+    n_nonbiased = estimates.df[Published == T & p.value <= Alpha & Biased == F, .N]
+    if (n_biased >= input$sim.end.value * input$bias.level &
+        n_nonbiased >= input$sim.end.value * (1 - input$bias.level)) {
+      return (1)
+    }
+  } else if (reached.sim.end(input$sim.end.value, input$how.sim.ends, input$alpha.threshold)) {
     return (1)
   }
   
@@ -269,7 +276,10 @@ scientist.action = function(input) {
   # Bias
   ### With a given probability, if the result is not significant,
   ### change the estimated effect size to be just over the threshold
-  if (!xp$Published & runif(1,0,1) < input$bias.level) {
+  if (fix.bias.prop) { target_bias_level = 1 }
+  else { target_bias_level = input$bias.level }
+  
+  if (!xp$Published & runif(1,0,1) < target_bias_level) {
     while (xp$p.value > xp$Alpha) {
       # Redo the experiment until it is significant
       xp = perform.experiment(effect.index, input)
@@ -286,12 +296,6 @@ scientist.action = function(input) {
     tmp[1:nrow(tmp),] = NA
     estimates.df <<- rbindlist(list(estimates.df, tmp), use.names = T, fill = T)
   }
-  
-  # Once there was an error below ...
-  # [1] "Generating the literature ..."
-  # Error in set(estimates.df, i = as.integer(estimates.rowcount), j, xp[[j]]) : 
-  #   Supplied 7 items to be assigned to 1 items of column 'Effect.Index'. The RHS length must either be 1 (single values are ok) or match the LHS length exactly. If you wish to 'recycle' the RHS please use rep() explicitly to make this intent clear to readers of your code.
-  # In addition: There were 50 or more warnings (use warnings() to see the first 50)
 
   # Adds new row using data.table::set  
   for (j in 1:ncol(xp)) {
@@ -306,7 +310,7 @@ feedback.message = function(msg, msgtype = "default") {
 }
 
 # Main function, called from the interface to set the whole model running
-run.simulation = function(input) {
+run.simulation = function(input, fix.bias.prop = FALSE) {
   input = sanitize_shiny_input(input)
   
   evdf = data.frame()
@@ -318,7 +322,7 @@ run.simulation = function(input) {
   it = 0
   give.fb = T
   while (it != 1) {
-    it = scientist.action(input)
+    it = scientist.action(input, fix.bias.prop)
     
     # Progress feedback
     progress = round(100 * sim.end.tracking(input$how.sim.ends, input$alpha.threshold) / input$sim.end.value)
@@ -334,6 +338,17 @@ run.simulation = function(input) {
   # Cut non-filled tail of the data table
   estimates.df <<- estimates.df[!is.na(Published),]
 
+  # If proportion of biased results is fixed, sample accordingly from estimates.df
+  if (fix.bias.prop) {
+    n_biased = input$sim.end.value * input$bias.level
+    n_nonbiased = input$sim.end.value * (1 - input$bias.level)
+    
+    biased.estimates = estimates.df[Biased == T,][sample(.N, n_biased),]
+    nonbiased.estimates = estimates.df[Biased == F,][sample(.N, n_nonbiased),]
+    
+    estimates.df <<- rbindlist(list(biased.estimates, nonbiased.estimates))
+  }
+  
   # Performs replications
   if (input$calc.repro) {
     feedback.message("Replicating experiments ...")
