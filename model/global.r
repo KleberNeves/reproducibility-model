@@ -50,7 +50,8 @@ dichotomous.input = list(
   repro.repeats = 5,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
-  scenarioName = ""
+  scenarioName = "",
+  publish.only.if.large = F
 )
 
 two.peaks.input = list(
@@ -70,7 +71,8 @@ two.peaks.input = list(
   repro.repeats = 5,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
-  scenarioName = ""
+  scenarioName = "",
+  publish.only.if.large = F
 )
 
 single.dist.input = list(
@@ -90,7 +92,8 @@ single.dist.input = list(
   repro.repeats = 5,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
-  scenarioName = ""
+  scenarioName = "",
+  publish.only.if.large = F
 )
 
 double.dist.input = list(
@@ -110,7 +113,8 @@ double.dist.input = list(
   repro.repeats = 5,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
-  scenarioName = ""
+  scenarioName = "",
+  publish.only.if.large = F
 )
 
 preset.scenarios = c(

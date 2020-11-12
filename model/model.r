@@ -272,6 +272,10 @@ scientist.action = function(input, fix.bias.prop) {
 
   # Performs the experiment
   xp = perform.experiment(effect.index, input)
+  if (input$publish.only.if.large &
+      abs(xp$Estimated.Effect.Size) < input$min.effect.of.interest) {
+    xp$Published = F
+  }
   
   # Bias
   ### With a given probability, if the result is not significant,
@@ -280,9 +284,15 @@ scientist.action = function(input, fix.bias.prop) {
   else { target_bias_level = input$bias.level }
   
   if (!xp$Published & runif(1,0,1) < target_bias_level) {
-    while (xp$p.value > xp$Alpha) {
+    publishable = F
+    while (!publishable) {
       # Redo the experiment until it is significant
       xp = perform.experiment(effect.index, input)
+      if (input$publish.only.if.large) {
+        publishable = xp$p.value <= xp$Alpha & abs(xp$Estimated.Effect.Size) >= input$min.effect.of.interest
+      } else {
+        publishable = xp$p.value <= xp$Alpha
+      }
     }
     xp$Biased = T
     xp$Published = T
@@ -291,6 +301,7 @@ scientist.action = function(input, fix.bias.prop) {
   # Increases the row count, allocates memory if the original allocation is full
   # This is for performance reasons, to avoid growing the data frame (see R Circles of Hell)
   estimates.rowcount <<- estimates.rowcount + 1
+  # print(estimates.rowcount)
   if (estimates.rowcount > nrow(estimates.df)) {
     tmp = estimates.df
     tmp[1:nrow(tmp),] = NA
@@ -310,7 +321,7 @@ feedback.message = function(msg, msgtype = "default") {
 }
 
 # Main function, called from the interface to set the whole model running
-run.simulation = function(input, fix.bias.prop = FALSE) {
+run.simulation = function(input, fix.bias.prop = F) {
   input = sanitize_shiny_input(input)
   
   evdf = data.frame()
@@ -340,11 +351,11 @@ run.simulation = function(input, fix.bias.prop = FALSE) {
 
   # If proportion of biased results is fixed, sample accordingly from estimates.df
   if (fix.bias.prop) {
-    n_biased = input$sim.end.value * input$bias.level
-    n_nonbiased = input$sim.end.value * (1 - input$bias.level)
+    n_biased = round(input$sim.end.value * input$bias.level)
+    n_nonbiased = round(input$sim.end.value * (1 - input$bias.level))
     
-    biased.estimates = estimates.df[Biased == T,][sample(.N, n_biased),]
-    nonbiased.estimates = estimates.df[Biased == F,][sample(.N, n_nonbiased),]
+    biased.estimates = estimates.df[Published == T & Biased == T,][sample(.N, n_biased),]
+    nonbiased.estimates = estimates.df[Published == T & Biased == F,][sample(.N, n_nonbiased),]
     
     estimates.df <<- rbindlist(list(biased.estimates, nonbiased.estimates))
   }

@@ -2,3 +2,6 @@ rsconnect
 hl_test_2nd_part_test.r
 hl_repro_runs_fixed_bias.r
 hl_repro_runs_for_exploration.r
+hl_test.R
+hl_model_results_1.r
+hl_model_results_1_only_if_large.r

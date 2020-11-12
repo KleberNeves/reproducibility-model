@@ -1,8 +1,8 @@
 # Function that runs a simulation and saves the results
 # a.input - a list with the input parameters
 # saveFilename - the name of the zip file where results will be saved
-# fix.bias.prop - if NULL, bias works through bias.level. If a number (between 0 and 1), the final published estimates will have exactly this proportion of biased results published.
-hlrun = function(a.input, saveFilename, fix.bias.prop = FALSE) {
+# fix.bias.prop - if FALSE, bias works through bias.level. If a number (between 0 and 1), the final published estimates will have exactly this proportion of biased results published.
+hlrun = function(a.input, saveFilename, fix.bias.prop = F) {
   shiny_running <<- FALSE
   run.simulation(a.input, fix.bias.prop)
   dir.create(results_folder)
@@ -42,7 +42,7 @@ hlrun = function(a.input, saveFilename, fix.bias.prop = FALSE) {
   t = "Saved!"; print(t)
 }
 
-hlrun_comb = function(comb, fix.bias.prop = FALSE) {
+hlrun_comb = function(comb, fix.bias.prop = F) {
   # Assumes i is a counter existing outside its scope (need to change this)
   i <<- i + 1
   k = baseline.input
