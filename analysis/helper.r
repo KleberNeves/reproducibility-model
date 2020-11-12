@@ -68,9 +68,9 @@ get.data.from.zip.rep = function(zipfile) {
   
   rep.eval.df = cbind(
     dcast(rep.eval.df %>% filter(!is.na(Type)) %>% select(-LongType),
-          RepSet ~ Type + variable + N, value.var = "value"),
+          RepSet ~ Type + name + N, value.var = "value"),
     dcast(rep.eval.df %>% filter(is.na(Type)) %>% select(-Type, -LongType),
-          RepSet ~ variable + N, value.var = "value") %>% select(-RepSet)
+          RepSet ~ name + N, value.var = "value") %>% select(-RepSet)
   )
   
   d = cbind(param.df, rep.eval.df)
