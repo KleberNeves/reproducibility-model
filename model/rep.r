@@ -1,5 +1,6 @@
 library(data.table)
 library(metafor)
+library(tidyr)
 
 # Returns a data frame with the results of replications
 perform.replications = function(input, rep.power = -1) {
