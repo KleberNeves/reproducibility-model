@@ -23,9 +23,7 @@ get.figure.data.rep = function(datapath) {
 
 get.data.from.zip.eval = function(zipfile, only_published = T) {
   
-  # There's probably a better way of doing this, but I'll figure it out later,
-  # performance is not critical at this point
-  source("eval.r", local = T)
+  source("../model/eval.r", local = T)
   
   tmpdir = tempdir()
   unzip(zipfile = zipfile, exdir = tmpdir)
@@ -49,8 +47,8 @@ get.data.from.zip.rep = function(zipfile) {
   
   # There's probably a better way of doing this, but I'll figure it out later,
   # performance is not critical at this point
-  source("eval.r", local = T)
-  source("rep.r", local = T)
+  source("../model/eval.r", local = T)
+  source("../model/rep.r", local = T)
   
   tmpdir = tempdir()
   unzip(zipfile = zipfile, exdir = tmpdir)
