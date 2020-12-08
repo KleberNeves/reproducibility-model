@@ -5,3 +5,5 @@ hl_repro_runs_for_exploration.r
 hl_test.R
 hl_model_results_1.r
 hl_model_results_1_only_if_large.r
+hl_repro_runs_prevalence.r
+hl_repro_runs_power95.r
