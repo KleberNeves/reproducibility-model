@@ -48,6 +48,8 @@ dichotomous.input = list(
   bias.level = 0,
   calc.repro = F,
   repro.repeats = 5,
+  repro.exps = 3,
+  repro.power = 0.95,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
@@ -69,6 +71,8 @@ two.peaks.input = list(
   bias.level = 0,
   calc.repro = F,
   repro.repeats = 5,
+  repro.exps = 3,
+  repro.power = 0.95,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
@@ -90,6 +94,8 @@ single.dist.input = list(
   bias.level = 0,
   calc.repro = F,
   repro.repeats = 5,
+  repro.exps = 3,
+  repro.power = 0.95,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
@@ -111,6 +117,8 @@ double.dist.input = list(
   bias.level = 0,
   calc.repro = F,
   repro.repeats = 5,
+  repro.exps = 3,
+  repro.power = 0.95,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
@@ -144,7 +152,7 @@ preset.scenarios = c("",
                      "Two peaks, low power, high bias",
                      "Continuous, high power, low bias",
                      "Continuous, low power, high bias"
-                     )
+)
 
 # Help text
 overview_help_text = read_file("./help/overview.html")

@@ -10,6 +10,9 @@ perform.replications = function(input, rep.power = -1) {
   
   # Number of replications per experiment
   n.reps = 3
+  if (!is.null(input$repro.exps)) {
+    n.reps = input$repro.exps
+  }
   
   # Calculate N for the desired power for the original estimate (not the real effect)
   if (rep.power > 0) {

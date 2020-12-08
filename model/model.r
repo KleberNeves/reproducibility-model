@@ -363,7 +363,11 @@ run.simulation = function(input, fix.bias.prop = F) {
   # Performs replications
   if (input$calc.repro) {
     feedback.message("Replicating experiments ...")
-    replications.df <<- perform.replications(input, rep.power = 0.95)
+    rep_pwr = 0.95
+    if (!is.null(input$repro.power)) {
+      rep_pwr = input$repro.power
+    }
+    replications.df <<- perform.replications(input, rep.power = rep_pwr)
   }
   
   if (shiny_running) {
