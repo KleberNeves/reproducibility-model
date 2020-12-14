@@ -257,8 +257,9 @@ perform.experiment = function(effect.index, input) {
 scientist.action = function(input, fix.bias.prop) {
   # If simulation ended, return
   if (fix.bias.prop) {
-    n_biased = estimates.df[Published == T & p.value <= Alpha & Biased == T, .N]
-    n_nonbiased = estimates.df[Published == T & p.value <= Alpha & Biased == F, .N]
+    n_biased = estimates.df[Published == T & p.value <= Alpha & abs(Real.Effect.Size) < input$min.effect.of.interest, .N]
+    n_nonbiased = estimates.df[Published == T & p.value <= Alpha & abs(Real.Effect.Size) >= input$min.effect.of.interest, .N]
+    
     if (n_biased >= input$sim.end.value * input$bias.level &
         n_nonbiased >= input$sim.end.value * (1 - input$bias.level)) {
       return (1)
@@ -354,8 +355,8 @@ run.simulation = function(input, fix.bias.prop = F) {
     n_biased = round(input$sim.end.value * input$bias.level)
     n_nonbiased = round(input$sim.end.value * (1 - input$bias.level))
     
-    biased.estimates = estimates.df[Published == T & Biased == T,][sample(.N, n_biased),]
-    nonbiased.estimates = estimates.df[Published == T & Biased == F,][sample(.N, n_nonbiased),]
+    biased.estimates = estimates.df[Published == T & abs(Real.Effect.Size) < input$min.effect.of.interest,][sample(.N, n_biased),]
+    nonbiased.estimates = estimates.df[Published == T & abs(Real.Effect.Size) >= input$min.effect.of.interest,][sample(.N, n_nonbiased),]
     
     estimates.df <<- rbindlist(list(biased.estimates, nonbiased.estimates))
   }
