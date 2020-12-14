@@ -285,7 +285,6 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
 
 # Computes success or failure in a replication according to a give criterium
 reproducibility.success = function (type, rep.exps, RMA, FMA) {
-  
   if (type == "Orig-in-RMA-PI") {
     longtype = "original estimate is within the PI of the RE meta analysis"
     value = rep.exps$Original.Effect.Size[1] > RMA$pred$cr.lb &
@@ -335,17 +334,18 @@ run.ma = function(mean_control, sd_control, n_control, mean_treated, sd_treated,
   tryCatch({
     if (type == "RE") {
       m = rma(yi = yi, vi = vi, data = ess, measure = "MD", method = "REML",
-              control = list(maxiter=1000))
+              control = list(maxiter=2000, stepadj=0.5))
       pred = predict.rma(m, level = 0.95, digits = 1)
       return (list(pred = pred, m = m))
     } else if (type == "FE") {
       m = rma(yi = yi, vi = vi, data = ess, measure = "MD", method = "FE",
-              control = list(maxiter=1000))
+              control = list(maxiter=2000, stepadj=0.5))
       pred = predict.rma(m, level = 0.95, digits = 1)
       return (list(pred = pred, m = m))
     }
   }, error = function(e) {
     message(e)
+    print(ess)
     return (NULL)
   })
 }
