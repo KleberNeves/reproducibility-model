@@ -384,14 +384,14 @@ area.under.normal.tails = function(spread, threshold) {
 
 # Helper to find the prevalence for a given distribution (tests many different parameters and returns an estimate of the prevalence of above minimum effects)
 get.above.minimum.weight = function(weights, mint, sdA, meanB, sdB, dist.n = 20000) {
-  m = abs(sapply(weights, sample.from.dist, sdA = sdA, sdB = sdB, meanB = meanB, k = dist.n)) >= mint
+  m = abs(map_dbl(weights, sample.from.dist, sdA = sdA, sdB = sdB, meanB = meanB, k = dist.n)) >= mint
   m = as.list(colSums(m) / dist.n)
   names(m) = weights
   m
 }
 
 get.above.minimum.sd = function(sdAs, mint, dist.n = 20000) {
-  m = abs(sapply(sdAs, sample.from.dist, weightB = 0, sdB = 0, meanB = 0, k = dist.n)) >= mint
+  m = abs(map_dbl(sdAs, sample.from.dist, weightB = 0, sdB = 0, meanB = 0, k = dist.n)) >= mint
   m = as.list(colSums(m) / dist.n)
   names(m) = sdAs
   m

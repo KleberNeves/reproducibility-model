@@ -45,7 +45,7 @@ perform.replications = function(input, rep.power = -1) {
     rep.input$typical.sample.size = rep.ests[Effect.Index == effect.index, rep.sample.size]
     
     # Runs separate repro repeats and saves that information so that we can estimate uncertainty later
-    exps = lapply(1:separate.reps, function (rep_i, effect.index, rep.input) {
+    exps = map(1:separate.reps, function (rep_i, effect.index, rep.input) {
       exp = perform.experiment(effect.index, rep.input)
       exp$RepSet = rep_i
       exp
@@ -55,7 +55,7 @@ perform.replications = function(input, rep.power = -1) {
   }
 
   # Runs a number of replications for each effect 
-  rep.df = lapply(
+  rep.df = map(
     rep(rep.ests$Effect.Index, n.reps),
     replicate.exp, rep.df, separate.reps = input$repro.repeats)
   rep.df = rbindlist(rep.df)
@@ -88,7 +88,7 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
   cast.df = target.df %>% filter(!is.na(Type)) %>%
     pivot_wider(id_cols = c("Effect.Index", "Type", "LongType", "RepSet"),
                 names_from = "Measure", values_from = "Value")
-  sapply(5:13, function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
+  walk(5:13, function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
   
   # overall replication rate, PPV/precision, recall
   cast.df = data.table(cast.df)
@@ -138,8 +138,8 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
     select(-Type, -LongType) %>%
     pivot_wider(id_cols = c("Effect.Index", "RepSet"),
                 names_from = "Measure", values_from = "Value")
-  sapply(c(3,4,7,8), function(x) { cast.df[[x]] <<- as.numeric(cast.df[[x]]) })
-  sapply(c(5,6,9,10), function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
+  walk(c(3,4,7,8), function(x) { cast.df[[x]] <<- as.numeric(cast.df[[x]]) })
+  walk(c(5,6,9,10), function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
   
   # exaggeration and signal error rate
   cast.df = data.table(cast.df)
@@ -198,7 +198,7 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   FMA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
                               MeanTreated, SDTreated, Sample.Size, type = "FE"))
   
-  result = ldply(types, reproducibility.success, rep.exps = rep.exps,
+  result = map_dfr(types, reproducibility.success, rep.exps = rep.exps,
                  RMA = RMA, FMA = FMA)
   original.estimate = rep.exps$Original.Effect.Size[1]
   real.effect = rep.exps$Real.Effect.Size[1]
