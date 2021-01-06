@@ -62,7 +62,7 @@ get.data.from.zip.rep = function(zipfile) {
     read.table(file = paste(tmpdir, "/replications.csv", sep = ""),
                sep = ";", stringsAsFactors = F, header = T))
   
-  rep.eval.df = make.rep.evaluation.tests(param.df$min.effect.of.interest)
+  rep.eval.df = make.rep.evaluation.tests(param.df$min.effect.of.interest, param.df$repro.detect)
   
   rep.eval.df = cbind(
     dcast(rep.eval.df %>% filter(!is.na(Type)) %>% select(-LongType),

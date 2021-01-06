@@ -2,6 +2,20 @@ library(data.table)
 library(metafor)
 library(tidyr)
 
+# Measures to evaluate the corpus of estimates of effect sizes
+# General function that calculates all rates, in all cases
+make.rep.evaluation.tests = function(min.effect, repro.detect) {
+  
+  rates.df = calc.rep.measures(min.effect.of.interest = min.effect, repro.detect = repro.detect)
+  
+  df = data.frame()
+  
+  df = rbind(df, reproducibility.rate(rates.df, n.sample = -1))
+  df = rbind(df, reproducibility.rate(rates.df, n.sample = 20))
+  
+  df
+}
+
 # Returns a data frame with the results of replications
 perform.replications = function(input, rep.power = -1) {
 
@@ -181,16 +195,16 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
 }
 
 # For each experiment, calculates reproducibility measures
-calc.rep.measures = function(types = c("Orig-in-RMA-PI", "RMA-SSS", "Orig-in-RMA-CI", "RMA-in-Orig-CI", "FMA-SSS", "Orig-in-FMA-CI", "FMA-in-Orig-CI", "VOTE-SSS"), min.effect.of.interest) {
+calc.rep.measures = function(types = c("Orig-in-RMA-PI", "RMA-SSS", "Orig-in-RMA-CI", "RMA-in-Orig-CI", "FMA-SSS", "Orig-in-FMA-CI", "FMA-in-Orig-CI", "VOTE-SSS"), min.effect.of.interest, repro.detect) {
   # For each set of experiments, calculates each reproducibility measure in types
   rates.df = replications.df[, evaluate.exp.rep(.SD, types = types,
-                                                min.effect.of.interest = min.effect.of.interest),
+                                                min.effect.of.interest = min.effect.of.interest, repro.detect = repro.detect),
                              by = .(Effect.Index, RepSet)]
   return (rates.df)
 }
 
 # Computes many types of reproducibility measures from a set of replications
-evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
+evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest, repro.detect) {
   
   RMA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
                               MeanTreated, SDTreated, Sample.Size, type = "RE"))
@@ -213,15 +227,6 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   # TN (didn't reproduce and is not real)
   result$TN = !result$Success & abs(real.effect) < min.effect.of.interest
   
-  # FP (reproduced but is not real)
-  result$FPBias = result$Success & biased
-  # FN (didn't reproduce but is real)
-  result$FNBias = !result$Success & !biased
-  # TP (reproduced and is real)
-  result$TPBias = result$Success & !biased
-  # TN (didn't reproduce and is not real)
-  result$TNBias = !result$Success & biased
-  
   # Cast to long format (seems convoluted, there should be a better way)
   result = pivot_longer(result, cols = -c("Type", "LongType"))
   colnames(result) = c("Type", "LongType", "Measure", "Value")
@@ -230,13 +235,18 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest) {
   result = rbind(result,
                  # Real Effect?
                  data.frame(Type = NA, LongType = NA,
-                            Measure = "Is.Real",
+                            Measure = "Is.Above.Min",
                             Value = abs(real.effect) >= min.effect.of.interest),
                  
                  # Is Biased?
                  data.frame(Type = NA, LongType = NA,
                             Measure = "Is.Biased",
                             Value = biased),
+                 
+                 # Well Estimated?
+                 data.frame(Type = NA, LongType = NA,
+                            Measure = "Is.Well.Estimated",
+                            Value = abs(real.effect - original.estimate) < repro.detect),
                  
                  # Exaggeration (RMA x Original)
                  data.frame(Type = NA, LongType = NA,

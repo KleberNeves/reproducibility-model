@@ -345,7 +345,7 @@ run.simulation = function(input, fix.bias.prop = F) {
     replications.df <<- perform.replications(input, rep.power = rep_pwr)
   }
   
-  if (!shiny_running) {
+  if (shiny_running) {
     feedback.message("Evaluating the literature ...")
     
     new.measures = make.evaluation.tests()
@@ -363,7 +363,7 @@ run.simulation = function(input, fix.bias.prop = F) {
   
   if (input$calc.repro) {
     feedback.message("Evaluating replications ...")
-    rep.eval.df <<- make.rep.evaluation.tests(input$min.effect.of.interest)
+    rep.eval.df <<- make.rep.evaluation.tests(input$min.effect.of.interest, input$repro.detect)
   }
   
   feedback.message("... and ... Finished!", "error")
