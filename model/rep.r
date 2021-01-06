@@ -6,12 +6,12 @@ library(tidyr)
 # General function that calculates all rates, in all cases
 make.rep.evaluation.tests = function(min.effect, repro.detect) {
   
-  rates.df = calc.rep.measures(min.effect.of.interest = min.effect, repro.detect = repro.detect)
+  rep.results.df = calc.rep.measures(min.effect.of.interest = min.effect, repro.detect = repro.detect)
   
   df = data.frame()
   
-  df = rbind(df, reproducibility.rate(rates.df, n.sample = -1))
-  df = rbind(df, reproducibility.rate(rates.df, n.sample = 20))
+  df = rbind(df, reproducibility.rate(rep.results.df, n.sample = -1))
+  df = rbind(df, reproducibility.rate(rep.results.df, n.sample = 20))
   
   df
 }
@@ -87,77 +87,79 @@ perform.replications = function(input, rep.power = -1) {
 
 # Goes over the replication data frame with evaluations and calculates overall summaries for
 #   each of the measures present there.
-reproducibility.rate = function (rates.df, n.sample = -1) {
+reproducibility.rate = function (rep.results.df, n.sample = -1) {
   
   # Get a sample if required
   if (n.sample > 0) {
-    eff.sample = sample(x = unique(rates.df$Effect.Index), size = n.sample, replace = F)
-    target.df = rates.df[Effect.Index %in% eff.sample]
+    eff.sample = sample(x = unique(rep.results.df$Effect.Index), size = n.sample, replace = F)
+    sample.results.df = rep.results.df[Effect.Index %in% eff.sample]
   } else {
-    target.df = rates.df
+    sample.results.df = rep.results.df
   }
   
-  # Summarises replication results (mean, min, max)
-  # For each criteria
-  cast.df = target.df %>% filter(!is.na(Type)) %>%
+  # Summarises replication results (mean, min, max) for the sample
+  rep.rates = sample.results.df %>% filter(!is.na(Type)) %>%
     pivot_wider(id_cols = c("Effect.Index", "Type", "LongType", "RepSet"),
                 names_from = "Measure", values_from = "Value")
-  walk(5:13, function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
+  walk(5:ncol(rep.rates), function(x) { rep.rates[[x]] <<- as.logical(rep.rates[[x]]) })
   
   # overall replication rate, PPV/precision, recall
-  cast.df = data.table(cast.df)
-  rep.rates = cast.df[, .(ReproRate = mean(Success),
-                          Specificity = sum(TN) / (sum(TN) + sum(FP)),
-                          Sensitivity = sum(TP) / (sum(TP) + sum(FN)),
-                          SpecificityBias = sum(TNBias) / (sum(TNBias) + sum(FPBias)),
-                          SensitivityBias = sum(TPBias) / (sum(TPBias) + sum(FNBias))),
-                      by = .(RepSet, Type, LongType)]
+  rep.rates = data.table(rep.rates)
+  rep.rates = rep.rates[, .(
+    ReproRate = mean(Success),
+    Specificity_AM = sum(TN_AM) / (sum(TN_AM) + sum(FP_AM)),
+    Sensitivity_AM = sum(TP_AM) / (sum(TP_AM) + sum(FN_AM)),
+    Specificity_B = sum(TN_B) / (sum(TN_B) + sum(FP_B)),
+    Sensitivity_B = sum(TP_B) / (sum(TP_B) + sum(FN_B)),
+    Specificity_P = sum(TN_P) / (sum(TN_P) + sum(FP_P)),
+    Sensitivity_P = sum(TP_P) / (sum(TP_P) + sum(FN_P))
+  ), by = .(RepSet, Type, LongType)]
   
-  # Prevalence of the literature (only of the target)
-  cast.df = target.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
-    pivot_wider(id_cols = c("Effect.Index", "RepSet"),
-                names_from = "Measure", values_from = "Value")
-  cast.df$Is.Real = as.logical(cast.df$Is.Real)
+  # Prevalences in the sample
+  cast.prev = function (x, measure) {
+    x = x %>% filter(Measure == rlang::as_name(enquo(measure))) %>% select(-Type, -LongType) %>%
+      pivot_wider(id_cols = c("Effect.Index", "RepSet"),
+                  names_from = "Measure", values_from = "Value") %>%
+    mutate({{ measure }} := as.logical({{ measure }}))
+    data.table(x)
+  }
   
-  cast.df = data.table(cast.df)
-  other.rates = cast.df[, .(Prev_Sample = mean(Is.Real)), by = .(RepSet)]
+  temp.df = cast.prev(sample.results.df, Is.Above.Min)
+  other.rates.am = temp.df[, .(Prev_Sample_AM = mean(Is.Above.Min)),
+                           by = .(RepSet)]
   
-  cast.df = target.df %>% filter(Measure == "Is.Biased") %>% select(-Type, -LongType) %>%
-    pivot_wider(id_cols = c("Effect.Index", "RepSet"),
-                names_from = "Measure", values_from = "Value")
-  cast.df$Is.Biased = as.logical(cast.df$Is.Biased)
+  temp.df = cast.prev(sample.results.df, Is.Biased)
+  other.rates.b = temp.df[, .(Prev_Sample_B = mean(Is.Biased)),
+                          by = .(RepSet)]
   
-  cast.df = data.table(cast.df)
-  other.rates.bias = cast.df[, .(Prev_SampleBias = mean(!Is.Biased)), by = .(RepSet)]
+  temp.df = cast.prev(sample.results.df, Is.Precise)
+  other.rates.p = temp.df[, .(Prev_Sample_P = mean(Is.Precise)),
+                          by = .(RepSet)]
   
-  # Prevalence of the literature (whole literature)
-  cast.df = rates.df %>% filter(Measure == "Is.Real") %>% select(-Type, -LongType) %>%
-    pivot_wider(id_cols = c("Effect.Index", "RepSet"),
-                names_from = "Measure", values_from = "Value")
-  cast.df$Is.Real = as.logical(cast.df$Is.Real)
+  # Prevalence of the literature (whole literature, for reference)
+  temp.df = cast.prev(rep.results.df, Is.Above.Min)
+  other.rates.aml = temp.df[, .(Prev_Lit_AM = mean(Is.Above.Min)),
+                                by = .(RepSet)]
   
-  cast.df = data.table(cast.df)
-  other.rates.whole = cast.df[, .(Prev_Whole = mean(Is.Real)), by = .(RepSet)]
+  temp.df = cast.prev(rep.results.df, Is.Biased)
+  other.rates.bl = temp.df[, .(Prev_Lit_B = mean(Is.Biased)),
+                               by = .(RepSet)]
   
-  cast.df = rates.df %>% filter(Measure == "Is.Biased") %>% select(-Type, -LongType) %>%
-    pivot_wider(id_cols = c("Effect.Index", "RepSet"),
-                names_from = "Measure", values_from = "Value")
-  cast.df$Is.Biased = as.logical(cast.df$Is.Biased)
+  temp.df = cast.prev(rep.results.df, Is.Precise)
+  other.rates.pl = temp.df[, .(Prev_Lit_P = mean(Is.Precise)),
+                               by = .(RepSet)]
   
-  cast.df = data.table(cast.df)
-  other.rates.whole.bias = cast.df[, .(Prev_WholeBias = mean(!Is.Biased)), by = .(RepSet)]
-  
-  # General (criteria-independent)
-  cast.df = target.df %>% filter(is.na(Type) & !(Measure %in% c("Is.Biased", "Is.Real"))) %>%
+  # General measures (criteria-independent), for the sample
+  temp.df = sample.results.df %>% filter(is.na(Type) & !(Measure %in% c("Is.Above.Min", "Is.Biased", "Is.Precise"))) %>%
     select(-Type, -LongType) %>%
     pivot_wider(id_cols = c("Effect.Index", "RepSet"),
                 names_from = "Measure", values_from = "Value")
-  walk(c(3,4,7,8), function(x) { cast.df[[x]] <<- as.numeric(cast.df[[x]]) })
-  walk(c(5,6,9,10), function(x) { cast.df[[x]] <<- as.logical(cast.df[[x]]) })
+  walk(c(3,4,7,8), function(x) { temp.df[[x]] <<- as.numeric(temp.df[[x]]) })
+  walk(c(5,6,9,10), function(x) { temp.df[[x]] <<- as.logical(temp.df[[x]]) })
   
-  # exaggeration and signal error rate
-  cast.df = data.table(cast.df)
-  error.rates = cast.df[,
+  # Exaggeration and signal error rate
+  temp.df = data.table(temp.df)
+  error.rates = temp.df[,
                         .(Exaggeration_RMA_x_Original = median(`Exaggeration (RMA x Original)`,
                                                                na.rm = T),
                           Exaggeration_RMA_x_Real = median(`Exaggeration (RMA x Real)`,
@@ -177,15 +179,16 @@ reproducibility.rate = function (rates.df, n.sample = -1) {
                         by = .(RepSet)]
   
   # Make long, bind and return
-  
   error.rates = pivot_longer(error.rates, cols = -"RepSet")
-  other.rates = pivot_longer(other.rates, cols = -"RepSet")
-  other.rates.bias = pivot_longer(other.rates.bias, cols = -"RepSet")
-  other.rates.whole = pivot_longer(other.rates.whole, cols = -"RepSet")
-  other.rates.whole.bias = pivot_longer(other.rates.whole.bias, cols = -"RepSet")
+  other.rates.am = pivot_longer(other.rates.am, cols = -"RepSet")
+  other.rates.aml = pivot_longer(other.rates.aml, cols = -"RepSet")
+  other.rates.b = pivot_longer(other.rates.b, cols = -"RepSet")
+  other.rates.bl = pivot_longer(other.rates.bl, cols = -"RepSet")
+  other.rates.p = pivot_longer(other.rates.p, cols = -"RepSet")
+  other.rates.pl = pivot_longer(other.rates.pl, cols = -"RepSet")
   rep.rates = pivot_longer(rep.rates, cols = -c("RepSet", "Type", "LongType"))
   
-  other.rates = rbind(error.rates, other.rates, other.rates.whole, other.rates.bias, other.rates.whole.bias)
+  other.rates = rbind(error.rates, other.rates.am, other.rates.aml, other.rates.b, other.rates.bl, other.rates.p, other.rates.pl)
   other.rates$Type = NA
   other.rates$LongType = NA
   
@@ -216,16 +219,30 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest, repro.dete
                  RMA = RMA, FMA = FMA)
   original.estimate = rep.exps$Original.Effect.Size[1]
   real.effect = rep.exps$Real.Effect.Size[1]
+  reproduced = result$Success
   biased = rep.exps$Biased[1]
+  is.above.min = abs(real.effect) >= min.effect.of.interest
+  is.precise = abs(real.effect - original.estimate) <= repro.detect
   
-  # FP (reproduced but is not real)
-  result$FP = result$Success & abs(real.effect) < min.effect.of.interest
-  # FN (didn't reproduce but is real)
-  result$FN = !result$Success & abs(real.effect) >= min.effect.of.interest
-  # TP (reproduced and is real)
-  result$TP = result$Success & abs(real.effect) >= min.effect.of.interest
-  # TN (didn't reproduce and is not real)
-  result$TN = !result$Success & abs(real.effect) < min.effect.of.interest
+  get_2x2_table = function (is_real, real_type) {
+    df = data.frame(
+      # False positives
+      FP = reproduced & !is_real,
+      # False negatives
+      FN = !reproduced & is_real,
+      # True positives
+      TP = reproduced & is_real,
+      # True negatives
+      TN = !reproduced & !is_real
+    )
+    colnames(df) = paste(colnames(df), real_type, sep = "_")
+    df
+  }
+  
+  result = cbind(result,
+                 get_2x2_table(is.above.min, "AM"), 
+                 get_2x2_table(biased, "B"), 
+                 get_2x2_table(is.precise, "P")) 
   
   # Cast to long format (seems convoluted, there should be a better way)
   result = pivot_longer(result, cols = -c("Type", "LongType"))
@@ -236,7 +253,7 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest, repro.dete
                  # Real Effect?
                  data.frame(Type = NA, LongType = NA,
                             Measure = "Is.Above.Min",
-                            Value = abs(real.effect) >= min.effect.of.interest),
+                            Value = is.above.min),
                  
                  # Is Biased?
                  data.frame(Type = NA, LongType = NA,
@@ -245,8 +262,8 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest, repro.dete
                  
                  # Well Estimated?
                  data.frame(Type = NA, LongType = NA,
-                            Measure = "Is.Well.Estimated",
-                            Value = abs(real.effect - original.estimate) < repro.detect),
+                            Measure = "Is.Precise",
+                            Value = is.precise),
                  
                  # Exaggeration (RMA x Original)
                  data.frame(Type = NA, LongType = NA,

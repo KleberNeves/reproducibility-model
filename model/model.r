@@ -359,11 +359,11 @@ run.simulation = function(input, fix.bias.prop = F) {
     evdf = rbind(evdf, new.measures)
     
     eval.df <<- evdf
-  }
   
-  if (input$calc.repro) {
-    feedback.message("Evaluating replications ...")
-    rep.eval.df <<- make.rep.evaluation.tests(input$min.effect.of.interest, input$repro.detect)
+    if (input$calc.repro) {
+      feedback.message("Evaluating replications ...")
+      rep.eval.df <<- make.rep.evaluation.tests(input$min.effect.of.interest, input$repro.detect)
+    }
   }
   
   feedback.message("... and ... Finished!", "error")
