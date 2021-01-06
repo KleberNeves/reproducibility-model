@@ -46,9 +46,6 @@ setup.model = function(input) {
   p2 = mean(a.sample >= input$min.effect.of.interest)
   
   # Calculate sample size in the input
-  # As of now, you don't set the sample size, only the power
-  # the other one will be calculated from the other
-  
   # Mean effect size for the effects above the minimum of interest
   mes = mean(a.sample[a.sample >= input$min.effect.of.interest])
   if (is.nan(mes)) { mes = input$min.effect.of.interest }
@@ -60,10 +57,6 @@ setup.model = function(input) {
   )$n)
 
   x = input
-  
-  # print(input$typical.sample.size)
-  # print(input$typical.power)
-  # print(mes)
   x["loadDataFile"] = NULL
   x = as.data.frame(as.matrix(unlist(x)), stringsAsFactors = F) %>%
     tibble::rownames_to_column()

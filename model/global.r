@@ -50,6 +50,7 @@ dichotomous.input = list(
   repro.repeats = 5,
   repro.exps = 3,
   repro.power = 0.95,
+  repro.detect = 0,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
@@ -73,6 +74,7 @@ two.peaks.input = list(
   repro.repeats = 5,
   repro.exps = 3,
   repro.power = 0.95,
+  repro.detect = 0,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
@@ -96,6 +98,7 @@ single.dist.input = list(
   repro.repeats = 5,
   repro.exps = 3,
   repro.power = 0.95,
+  repro.detect = 0,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
@@ -119,22 +122,11 @@ double.dist.input = list(
   repro.repeats = 5,
   repro.exps = 3,
   repro.power = 0.95,
+  repro.detect = 0,
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
   publish.only.if.large = F
-)
-
-preset.scenarios = c(
-  "Optimistic: low variability, large effects, high power, no publication bias",
-  "Optimistic, but with publication bias",
-  "Small effects, large sample sizes",
-  "Large effects, small sample sizes",
-  "Large measurement error",
-  "Large interlab variation",
-  "Small sample size, small effects",
-  "Pessimistic: high variance and error, small sample size, small effects",
-  "Small (for quick testing)"
 )
 
 shiny_running = TRUE
