@@ -19,13 +19,7 @@ setup.model = function(input) {
     CI.low = numeric(m),
     CI.high = numeric(m),
     Sample.Size = numeric(m),
-    Power = numeric(m),
-    Interlab.Variation = numeric(m),
-    Measurement.Error = numeric(m),
     Alpha = numeric(m),
-    How.It.Ends = character(m),
-    End.Value = numeric(m),
-    Positive.Bias = numeric(m),
     Min.Interesting.Effect = numeric(m),
     Biased = logical(m),
     Published = logical(m)
@@ -223,22 +217,9 @@ perform.experiment = function(effect.index, input) {
     p.value = test$p.value,
     CI.low = test$conf.low,
     CI.high = test$conf.high,
-    
-    # The list below are fixed parameters - I could reduce RAM and storage
-    # use if this is not used later (replace columns with the input value)
-    # Would need to save/load the input as well, when saving results, when
-    # opening later for analysis. But doing it like this is silly.
-    # Changing it would also make it simpler when adding new parameters
     Sample.Size = input$typical.sample.size,
-    Power = input$typical.power,
-    Interlab.Variation = input$interlab.var,
-    Measurement.Error = 0,#input$measure.error,
     Alpha = input$alpha.threshold,
-    How.It.Ends = input$how.sim.ends,
-    End.Value = input$sim.end.value,
-    Positive.Bias = input$neg.incentive,
     Min.Interesting.Effect = input$min.effect.of.interest,
-    
     Biased = F,
     Published = published(test$p.value, input$alpha.threshold, input$neg.incentive)
   )
@@ -283,9 +264,9 @@ scientist.action = function(input, fix.bias.prop) {
       # Redo the experiment until it is significant
       xp = perform.experiment(effect.index, input)
       if (input$publish.only.if.large) {
-        publishable = xp$p.value <= xp$Alpha & abs(xp$Estimated.Effect.Size) >= input$min.effect.of.interest
+        publishable = xp$p.value <= input$alpha.threshold & abs(xp$Estimated.Effect.Size) >= input$min.effect.of.interest
       } else {
-        publishable = xp$p.value <= xp$Alpha
+        publishable = xp$p.value <= input$alpha.threshold
       }
     }
     xp$Biased = T
@@ -364,7 +345,7 @@ run.simulation = function(input, fix.bias.prop = F) {
     replications.df <<- perform.replications(input, rep.power = rep_pwr)
   }
   
-  if (shiny_running) {
+  if (!shiny_running) {
     feedback.message("Evaluating the literature ...")
     
     new.measures = make.evaluation.tests()
