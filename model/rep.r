@@ -18,7 +18,7 @@ make.rep.evaluation.tests = function(min.effect, repro.detect) {
 
 # Returns a data frame with the results of replications
 perform.replications = function(input, rep.power = -1) {
-
+  
   # Filters the published estimates
   rep.ests = estimates.df[Published == T & p.value <= Alpha]
   
@@ -67,7 +67,7 @@ perform.replications = function(input, rep.power = -1) {
     
     rbindlist(exps)
   }
-
+  
   # Runs a number of replications for each effect 
   rep.df = map(
     rep(rep.ests$Effect.Index, n.reps),
@@ -117,37 +117,37 @@ reproducibility.rate = function (rep.results.df, n.sample = -1) {
   
   # Prevalences in the sample
   cast.prev = function (x, measure) {
-    x = x %>% filter(Measure == rlang::as_name(enquo(measure))) %>% select(-Type, -LongType) %>%
+    x = x %>% filter(Measure == measure) %>% select(-Type, -LongType) %>%
       pivot_wider(id_cols = c("Effect.Index", "RepSet"),
-                  names_from = "Measure", values_from = "Value") %>%
-    mutate({{ measure }} := as.logical({{ measure }}))
+                  names_from = "Measure", values_from = "Value")
+    x[, measure] = as.logical(x[, measure, drop = T])
     data.table(x)
   }
   
-  temp.df = cast.prev(sample.results.df, Is.Above.Min)
-  other.rates.am = temp.df[, .(Prev_Sample_AM = mean(Is.Above.Min)),
+  temp.df = cast.prev(sample.results.df, "Is.Above.Min")
+  other.rates.am = temp.df[, .(Prev_Sample_AM = mean(Is.Above.Min, na.rm = T)),
                            by = .(RepSet)]
   
-  temp.df = cast.prev(sample.results.df, Is.Biased)
-  other.rates.b = temp.df[, .(Prev_Sample_B = mean(Is.Biased)),
+  temp.df = cast.prev(sample.results.df, "Is.Biased")
+  other.rates.b = temp.df[, .(Prev_Sample_B = mean(Is.Biased, na.rm = T)),
                           by = .(RepSet)]
   
-  temp.df = cast.prev(sample.results.df, Is.Precise)
-  other.rates.p = temp.df[, .(Prev_Sample_P = mean(Is.Precise)),
+  temp.df = cast.prev(sample.results.df, "Is.Precise")
+  other.rates.p = temp.df[, .(Prev_Sample_P = mean(Is.Precise, na.rm = T)),
                           by = .(RepSet)]
   
   # Prevalence of the literature (whole literature, for reference)
-  temp.df = cast.prev(rep.results.df, Is.Above.Min)
+  temp.df = cast.prev(rep.results.df, "Is.Above.Min")
   other.rates.aml = temp.df[, .(Prev_Lit_AM = mean(Is.Above.Min)),
-                                by = .(RepSet)]
+                            by = .(RepSet)]
   
-  temp.df = cast.prev(rep.results.df, Is.Biased)
+  temp.df = cast.prev(rep.results.df, "Is.Biased")
   other.rates.bl = temp.df[, .(Prev_Lit_B = mean(Is.Biased)),
-                               by = .(RepSet)]
+                           by = .(RepSet)]
   
-  temp.df = cast.prev(rep.results.df, Is.Precise)
+  temp.df = cast.prev(rep.results.df, "Is.Precise")
   other.rates.pl = temp.df[, .(Prev_Lit_P = mean(Is.Precise)),
-                               by = .(RepSet)]
+                           by = .(RepSet)]
   
   # General measures (criteria-independent), for the sample
   temp.df = sample.results.df %>% filter(is.na(Type) & !(Measure %in% c("Is.Above.Min", "Is.Biased", "Is.Precise"))) %>%
@@ -216,7 +216,7 @@ evaluate.exp.rep = function (rep.exps, types, min.effect.of.interest, repro.dete
                               MeanTreated, SDTreated, Sample.Size, type = "FE"))
   
   result = map_dfr(types, reproducibility.success, rep.exps = rep.exps,
-                 RMA = RMA, FMA = FMA)
+                   RMA = RMA, FMA = FMA)
   original.estimate = rep.exps$Original.Effect.Size[1]
   real.effect = rep.exps$Real.Effect.Size[1]
   reproduced = result$Success

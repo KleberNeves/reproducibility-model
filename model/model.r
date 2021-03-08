@@ -40,16 +40,23 @@ setup.model = function(input) {
   p2 = mean(a.sample >= input$min.effect.of.interest)
   
   # Calculate sample size in the input
+  if (input$power.calculation == "mean of the true effects") {
+    es_to_detect = mean(a.sample[a.sample >= input$min.effect.of.interest])
+    if (is.nan(es_to_detect)) { es_to_detect = input$min.effect.of.interest }
+  } else if (input$power.calculation == "minimum of interest") {
+    es_to_detect = input$min.effect.of.interest
+  } else if (input$power.calculation == "twice the minimum of interest") {
+    es_to_detect = 2 * input$min.effect.of.interest
+  } else {
+    stop("Invalid way of calculating power for experiments.")
+  }
   # Mean effect size for the effects above the minimum of interest
-  mes = mean(a.sample[a.sample >= input$min.effect.of.interest])
-  if (is.nan(mes)) { mes = input$min.effect.of.interest }
-  
   input$typical.sample.size = ceiling(power.t.test(
-    n = NULL, delta = mes,
+    n = NULL, delta = es_to_detect,
     sd = 1, sig.level = input$alpha.threshold,
     power = input$typical.power
   )$n)
-
+  
   x = input
   x["loadDataFile"] = NULL
   x = as.data.frame(as.matrix(unlist(x)), stringsAsFactors = F) %>%
@@ -384,14 +391,14 @@ area.under.normal.tails = function(spread, threshold) {
 
 # Helper to find the prevalence for a given distribution (tests many different parameters and returns an estimate of the prevalence of above minimum effects)
 get.above.minimum.weight = function(weights, mint, sdA, meanB, sdB, dist.n = 20000) {
-  m = abs(map_dbl(weights, sample.from.dist, sdA = sdA, sdB = sdB, meanB = meanB, k = dist.n)) >= mint
+  m = abs(sapply(weights, sample.from.dist, sdA = sdA, sdB = sdB, meanB = meanB, k = dist.n)) >= mint
   m = as.list(colSums(m) / dist.n)
   names(m) = weights
   m
 }
 
 get.above.minimum.sd = function(sdAs, mint, dist.n = 20000) {
-  m = abs(map_dbl(sdAs, sample.from.dist, weightB = 0, sdB = 0, meanB = 0, k = dist.n)) >= mint
+  m = abs(sapply(sdAs, sample.from.dist, weightB = 0, sdB = 0, meanB = 0, k = dist.n)) >= mint
   m = as.list(colSums(m) / dist.n)
   names(m) = sdAs
   m
