@@ -314,9 +314,16 @@ evaluate.exp.rep = function (rep.exps, min.effect.of.interest, repro.detect) {
 # Computes success or failure in a replication according to a given criterion
 reproducibility.success = function (type, comb.exps, RMA, FMA, CMA) {
   rep.exps = comb.exps[RepSet != 0, ]
+  orig.exp = comb.exps[RepSet == 0, ]
+  
+  d33 = power.t.test(
+    n = orig.exp$Sample.Size, delta = NULL,
+    sd = 1, sig.level = orig.exp$Alpha,
+    power = 0.33
+  )$delta
   
   success_df = tibble(
-    Type = c("VOTE_SSS_0_05", "VOTE_SSS_0_005", "FMA_SSS_0_05", "FMA_SSS_0_005", "RMA_SSS_0_05", "RMA_SSS_0_005", "ORIG_IN_RMA_PI", "ORIG_IN_FMA_CI", "RMA_IN_ORIG_CI", "CMA_SSS_0_05", "CMA_SSS_0_005"),#, "SMALL_TELESCOPE", "BF_3", "BF_10"),
+    Type = c("VOTE_SSS_0_05", "VOTE_SSS_0_005", "FMA_SSS_0_05", "FMA_SSS_0_005", "RMA_SSS_0_05", "RMA_SSS_0_005", "ORIG_IN_RMA_PI", "ORIG_IN_FMA_CI", "RMA_IN_ORIG_CI", "CMA_SSS_0_05", "CMA_SSS_0_005", "SMALL_TELESCOPE"),#, "BF_3", "BF_10"),
     
     Success = c(
       # Simple majority voting by significance (p < 0.05) and same sense
@@ -352,9 +359,10 @@ reproducibility.success = function (type, comb.exps, RMA, FMA, CMA) {
       rep.exps$Original.Effect.Size[1] / CMA$m$beta[[1]] > 0 & CMA$m$pval < 0.05,
       
       # Combined meta-analysis is significant (p < 0.005)
-      rep.exps$Original.Effect.Size[1] / CMA$m$beta[[1]] > 0 & CMA$m$pval < 0.005
+      rep.exps$Original.Effect.Size[1] / CMA$m$beta[[1]] > 0 & CMA$m$pval < 0.005,
 
       # Small telescopes
+      RMA$m$beta[[1]] > d33
       
       # Bayes factor for the alternative against the null hypothesis is larger than 3
       
