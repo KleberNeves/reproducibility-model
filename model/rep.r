@@ -5,14 +5,13 @@ library(BayesFactor)
 
 # Measures to evaluate the corpus of estimates of effect sizes
 # General function that calculates all rates, in all cases
-make.rep.evaluation.tests = function(min.effect, repro.detect) {
+make.rep.evaluation.tests = function(input) {
   
-  rep.results.df = calc.rep.measures(min.effect.of.interest = min.effect, repro.detect = repro.detect)
+  rep.results.df = calc.rep.measures(input)
   
-  df = data.frame()
-  
-  df = rbind(df, reproducibility.rate(rep.results.df, n.sample = -1))
-  df = rbind(df, reproducibility.rate(rep.results.df, n.sample = 20))
+  df = map_dfr(input$repro.sample, function (x) {
+    reproducibility.rate(rep.results.df, n.sample = x)
+  })
   
   df
 }
@@ -36,7 +35,7 @@ perform.replications = function(input, rep.power) {
         power.t.test(delta = eff, sd = sd, sig.level = alpha, power = wanted.pwr)$n
       }, error = function(e) {
         # Error means N < 2, i.e. very large effect compared to the SEM
-        2
+        3
       })
       return (ceiling(pw))
     }
@@ -80,17 +79,14 @@ perform.replications = function(input, rep.power) {
   return (rep.df)
 }
 
-# Goes over the replication data frame with evaluations and calculates overall summaries for
-#   each of the measures present there.
-reproducibility.rate = function (rep.results.df, n.sample = -1) {
+# Goes over the replication data frame with evaluations and calculates overall summaries for each of the measures present there.
+reproducibility.rate = function (rep.results.df, n.sample) {
+  browser()
+  # Build the sample of replications/effects to be considered
+  eff.sample = sample(x = unique(rep.results.df$Effect.Index),
+                      size = n.sample, replace = F)
   
-  # Get a sample if required
-  if (n.sample > 0) {
-    eff.sample = sample(x = unique(rep.results.df$Effect.Index), size = n.sample, replace = F)
-    sample.results.df = rep.results.df[Effect.Index %in% eff.sample]
-  } else {
-    sample.results.df = rep.results.df
-  }
+  sample.results.df = rep.results.df[Effect.Index %in% eff.sample]
   
   # Summarises replication results (mean, min, max) for the sample
   rep.rates = sample.results.df %>% filter(!is.na(Type)) %>%
@@ -187,21 +183,21 @@ reproducibility.rate = function (rep.results.df, n.sample = -1) {
   other.rates$Type = NA
   
   final.rates = rbind(rep.rates, other.rates)
-  final.rates$N = ifelse(n.sample == -1, "All", as.character(n.sample))
+  final.rates$N = n.sample
+  final.rates$Nprop = round(n.sample / nrow(rep.results.df), 2)
   return (final.rates)
 }
 
 # For each experiment, calculates all the reproducibility measures
-calc.rep.measures = function(min.effect.of.interest, repro.detect) {
+calc.rep.measures = function(input) {
   # For each set of experiments, calculates each reproducibility measure in types
-  rates.df = replications.df[, evaluate.exp.rep(.SD, types = types,
-                                                min.effect.of.interest = min.effect.of.interest, repro.detect = repro.detect),
+  rates.df = replications.df[, evaluate.exp.rep(.SD, types = types, input = input),
                              by = .(Effect.Index, RepSet)]
   return (rates.df)
 }
 
 # Computes many types of reproducibility measures from a set of replications
-evaluate.exp.rep = function (rep.exps, min.effect.of.interest, repro.detect) {
+evaluate.exp.rep = function (rep.exps, input) {
   
   RMA = with(rep.exps[RepSet != 0,],
              run.ma(MeanControl, SDControl, Sample.Size,
@@ -221,11 +217,16 @@ evaluate.exp.rep = function (rep.exps, min.effect.of.interest, repro.detect) {
   original.estimate = rep.exps$Original.Effect.Size[1]
   real.effect = rep.exps$Real.Effect.Size[1]
   reproduced = result$Success
-  biased = rep.exps$Biased[1]
-  is.above.min = abs(real.effect) >= min.effect.of.interest
-  is.precise = abs(real.effect - original.estimate) <= repro.detect
   
-  get_2x2_table = function (is_real, real_type) {
+  if (input$fixed.prev.mode == "none" | input$fixed.prev.mode == "above minimum of interest") {
+    is_real = abs(real.effect) >= input$min.effect.of.interest
+  } else if (input$fixed.prev.mode == "non-biased") {
+    is_real = !rep.exps$Biased[1]
+  } else if (input$fixed.prev.mode == "precision") {
+    is_real = abs(real.effect - original.estimate) <= input$repro.detect
+  }
+  
+  get_2x2_table = function (is_real) {
     df = data.frame(
       # False positives
       FP = reproduced & !is_real,
@@ -236,35 +237,20 @@ evaluate.exp.rep = function (rep.exps, min.effect.of.interest, repro.detect) {
       # True negatives
       TN = !reproduced & !is_real
     )
-    colnames(df) = paste(colnames(df), real_type, sep = "_")
     df
   }
   
-  result = cbind(result,
-                 get_2x2_table(is.above.min, "AM"), 
-                 get_2x2_table(biased, "B"), 
-                 get_2x2_table(is.precise, "P")) 
+  result = cbind(result, get_2x2_table(is_real)) 
   
   # Cast to long format (seems convoluted, there should be a better way)
-  result = pivot_longer(result, cols = -c("Type"))
-  colnames(result) = c("Type", "Measure", "Value")
+  result = pivot_longer(result, cols = -c("Type"), names_to = "Measure", values_to = "Value")
   result$Value = as.character(result$Value)
   
   result = rbind(result,
                  # Real Effect?
                  data.frame(Type = NA,
-                            Measure = "Is.Above.Min",
-                            Value = is.above.min),
-                 
-                 # Is Biased?
-                 data.frame(Type = NA,
-                            Measure = "Is.Biased",
-                            Value = biased),
-                 
-                 # Well Estimated?
-                 data.frame(Type = NA,
-                            Measure = "Is.Precise",
-                            Value = is.precise),
+                            Measure = "Is.Real",
+                            Value = is_real),
                  
                  # Exaggeration (RMA x Original)
                  data.frame(Type = NA,
@@ -285,27 +271,7 @@ evaluate.exp.rep = function (rep.exps, min.effect.of.interest, repro.detect) {
                  data.frame(Type = NA,
                             Measure = "Signal Error (RMA x Real)",
                             Value = RMA$m$beta[[1]] / real.effect <= 0 &
-                              RMA$m$pval < 0.05),
-                 # Exaggeration (FMA x Original)
-                 data.frame(Type = NA,
-                            Measure = "Exaggeration (FMA x Original)",
-                            Value = ifelse(FMA$m$beta[[1]] / original.estimate <= 0,
-                                           NA, FMA$m$beta[[1]] / original.estimate)),
-                 # Exaggeration (FMA x Real)
-                 data.frame(Type = NA,
-                            Measure = "Exaggeration (FMA x Real)",
-                            Value = ifelse(FMA$m$beta[[1]] / real.effect <= 0,
-                                           NA, FMA$m$beta[[1]] / real.effect)),
-                 # Signal (FMA x Original)
-                 data.frame(Type = NA,
-                            Measure = "Signal Error (FMA x Original)",
-                            Value = FMA$m$beta[[1]] / original.estimate <= 0 &
-                              FMA$m$pval < 0.05),
-                 # Signal (FMA x Real)
-                 data.frame(Type = NA,
-                            Measure = "Signal Error (FMA x Real)",
-                            Value = FMA$m$beta[[1]] / real.effect <= 0 &
-                              FMA$m$pval < 0.05)
+                              RMA$m$pval < 0.05)
   )
   
   result

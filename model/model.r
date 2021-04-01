@@ -192,7 +192,7 @@ reached.sim.end = function(max.value, criteria, alpha, perc = 1) {
     if (input$fixed.prev.mode == "above minimum of interest") {
       n_true = estimates.df[Published == T & abs(Real.Effect.Size) >= input$min.effect.of.interest, .N]
       n_false = estimates.df[Published == T & abs(Real.Effect.Size) < input$min.effect.of.interest, .N]
-    } else if (input$fixed.prev.mode == "precision (min of interest)") {
+    } else if (input$fixed.prev.mode == "precision") {
       n_true = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) <= input$min.effect.of.interest, .N]
       n_false = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) > input$min.effect.of.interest, .N]
     } else if (input$fixed.prev.mode == "non-biased") {
@@ -346,8 +346,8 @@ run.simulation = function(input) {
     if (input$fixed.prev.mode == "above minimum of interest") {
       true.estimates = estimates.df[Published == T & abs(Real.Effect.Size) >= input$min.effect.of.interest,][sample(.N, n_true),]
       false.estimates = estimates.df[Published == T & abs(Real.Effect.Size) < input$min.effect.of.interest,][sample(.N, n_false),]
-    } else if (input$fixed.prev.mode == "precision (min of interest)") {
-      true.estimates = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) <= input$min.effect.of.interest,][sample(.N, n_true),]
+    } else if (input$fixed.prev.mode == "precision") {
+      true.estimates = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) <= input$repro.detect,][sample(.N, n_true),]
       false.estimates = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) > input$min.effect.of.interest,][sample(.N, n_false),]
     } else if (input$fixed.prev.mode == "non-biased") {
       true.estimates = estimates.df[Published == T & Biased == F,][sample(.N, n_true),]
