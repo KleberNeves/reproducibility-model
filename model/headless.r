@@ -1,10 +1,9 @@
 # Function that runs a simulation and saves the results
 # a.input - a list with the input parameters
 # saveFilename - the name of the zip file where results will be saved
-# fix.bias.prop - if FALSE, bias works through bias.level. If a number (between 0 and 1), the final published estimates will have exactly this proportion of biased results published.
-hlrun = function(a.input, saveFilename, fix.bias.prop = F) {
+hlrun = function(a.input, saveFilename) {
   shiny_running <<- FALSE
-  run.simulation(a.input, fix.bias.prop)
+  run.simulation(a.input)
   dir.create(results_folder)
   
   # Zipping to export results

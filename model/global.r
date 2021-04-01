@@ -1,15 +1,11 @@
 library(shiny)
-library(ggplot2)
+library(tidyverse)
 library(broom)
 library(glue)
-library(purrr)
-library(dplyr)
-library(tidyr)
 library(metafor)
 library(zip)
 library(pwr)
 library(data.table)
-library(readr)
 
 possible.outcomes = c(
   "False Positives",
@@ -55,7 +51,9 @@ dichotomous.input = list(
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
-  publish.only.if.large = F
+  publish.only.if.large = F,
+  fixed.prev.mode = "none",
+  fixed.prev = 0
 )
 
 two.peaks.input = list(
@@ -80,7 +78,9 @@ two.peaks.input = list(
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
-  publish.only.if.large = F
+  publish.only.if.large = F,
+  fixed.prev.mode = "none",
+  fixed.prev = 0
 )
 
 single.dist.input = list(
@@ -105,7 +105,9 @@ single.dist.input = list(
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
-  publish.only.if.large = F
+  publish.only.if.large = F,
+  fixed.prev.mode = "none",
+  fixed.prev = 0
 )
 
 double.dist.input = list(
@@ -130,7 +132,9 @@ double.dist.input = list(
   how.sim.ends = "At a given number of published effects",
   sim.end.value = 5000,
   scenarioName = "",
-  publish.only.if.large = F
+  publish.only.if.large = F,
+  fixed.prev.mode = "none",
+  fixed.prev = 0
 )
 
 shiny_running = TRUE

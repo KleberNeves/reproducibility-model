@@ -5,7 +5,6 @@ setup.model = function(input) {
   
   effects.df <<- data.table()
   
-  # It uses a lot more memory to store the inputs for every row, but changing this requires refactoring all of the evaluation code, which relies on these columns existing
   estimates.df <<- data.table(
     Effect.Index = numeric(m),
     Real.Effect.Size = numeric(m),
@@ -178,19 +177,35 @@ published = function(p.value, Alpha, negative.bias) {
 
 # Check whether the condition to end the simulation was reached (sample size or number of effects)
 reached.sim.end = function(max.value, criteria, alpha, perc = 1) {
-  return (sim.end.tracking(criteria, alpha) >= max.value * perc)
-}
-
-# Tracks the value that determines the end of the simulation, depending on the criteria chosen by the user
-sim.end.tracking = function(criteria, alpha) {
-  if (criteria == "At a given number of published effects") {
-    v = estimates.df[Published == T, .N]
-  } else if (criteria == "At a given number of positive published effects") {
-    v = estimates.df[Published == T & p.value <= alpha, .N]
-  } else if (criteria == "At a given total sample size") {
-    v = sum(estimates.df$Sample.Size)
+  if (input$fixed.prev.mode == "none") {
+    if (criteria == "At a given number of published effects") {
+      v = estimates.df[Published == T, .N]
+    } else if (criteria == "At a given number of positive published effects") {
+      v = estimates.df[Published == T & p.value <= alpha, .N]
+    } else if (criteria == "At a given total sample size") {
+      v = sum(estimates.df$Sample.Size)
+    } else {
+      stop("Invalid value for simulation ending criterium.")
+    }
+    has_ended = (v >= max.value * perc)
+  } else {
+    if (input$fixed.prev.mode == "above minimum of interest") {
+      n_true = estimates.df[Published == T & abs(Real.Effect.Size) >= input$min.effect.of.interest, .N]
+      n_false = estimates.df[Published == T & abs(Real.Effect.Size) < input$min.effect.of.interest, .N]
+    } else if (input$fixed.prev.mode == "precision (min of interest)") {
+      n_true = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) <= input$min.effect.of.interest, .N]
+      n_false = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) > input$min.effect.of.interest, .N]
+    } else if (input$fixed.prev.mode == "non-biased") {
+      n_true = estimates.df[Published == T & Biased == F, .N]
+      n_false = estimates.df[Published == T & Biased == T, .N]
+    } else {
+      stop("Invalid value for fixed prevalence mode parameter.")
+    }
+    has_ended = (n_false >= input$sim.end.value * input$fixed.prev &
+                   n_true >= input$sim.end.value * (1 - input$fixed.prev))
   }
-  v
+  
+  has_ended
 }
 
 # Function to simulate the whole experimental procedure, from data generation to analysis and publication
@@ -235,17 +250,9 @@ perform.experiment = function(effect.index, input) {
 }
 
 # Executes the simulated scientist behavior
-scientist.action = function(input, fix.bias.prop) {
+scientist.action = function(input) {
   # If simulation ended, return
-  if (fix.bias.prop) {
-    n_biased = estimates.df[Published == T & p.value <= Alpha & abs(Real.Effect.Size) < input$min.effect.of.interest, .N]
-    n_nonbiased = estimates.df[Published == T & p.value <= Alpha & abs(Real.Effect.Size) >= input$min.effect.of.interest, .N]
-    
-    if (n_biased >= input$sim.end.value * input$bias.level &
-        n_nonbiased >= input$sim.end.value * (1 - input$bias.level)) {
-      return (1)
-    }
-  } else if (reached.sim.end(input$sim.end.value, input$how.sim.ends, input$alpha.threshold)) {
+  if (reached.sim.end(input$sim.end.value, input$how.sim.ends, input$alpha.threshold)) {
     return (1)
   }
   
@@ -262,7 +269,7 @@ scientist.action = function(input, fix.bias.prop) {
   # Bias
   ### With a given probability, if the result is not significant,
   ### change the estimated effect size to be just over the threshold
-  if (fix.bias.prop) { target_bias_level = 1 }
+  if (input$fixed.prev.mode == "non-biased") { target_bias_level = 1 }
   else { target_bias_level = input$bias.level }
   
   if (!xp$Published & runif(1,0,1) < target_bias_level) {
@@ -303,7 +310,7 @@ feedback.message = function(msg, msgtype = "default") {
 }
 
 # Main function, called from the interface to set the whole model running
-run.simulation = function(input, fix.bias.prop = F) {
+run.simulation = function(input) {
   input = sanitize_shiny_input(input)
   
   evdf = data.frame()
@@ -315,7 +322,7 @@ run.simulation = function(input, fix.bias.prop = F) {
   it = 0
   give.fb = T
   while (it != 1) {
-    it = scientist.action(input, fix.bias.prop)
+    it = scientist.action(input)
     
     # Progress feedback
     progress = round(100 * sim.end.tracking(input$how.sim.ends, input$alpha.threshold) / input$sim.end.value)
@@ -331,15 +338,23 @@ run.simulation = function(input, fix.bias.prop = F) {
   # Cut non-filled tail of the data table
   estimates.df <<- estimates.df[!is.na(Published),]
 
-  # If proportion of biased results is fixed, sample accordingly from estimates.df
-  if (fix.bias.prop) {
-    n_biased = round(input$sim.end.value * input$bias.level)
-    n_nonbiased = round(input$sim.end.value * (1 - input$bias.level))
+  # If the prevalence is fixed, sample accordingly from estimates.df
+  if (input$fixed.prev.mode != "none") {
+    n_true = round(input$sim.end.value * input$fixed.prev)
+    n_false = round(input$sim.end.value * (1 - input$fixed.prev))
     
-    biased.estimates = estimates.df[Published == T & abs(Real.Effect.Size) < input$min.effect.of.interest,][sample(.N, n_biased),]
-    nonbiased.estimates = estimates.df[Published == T & abs(Real.Effect.Size) >= input$min.effect.of.interest,][sample(.N, n_nonbiased),]
+    if (input$fixed.prev.mode == "above minimum of interest") {
+      true.estimates = estimates.df[Published == T & abs(Real.Effect.Size) >= input$min.effect.of.interest,][sample(.N, n_true),]
+      false.estimates = estimates.df[Published == T & abs(Real.Effect.Size) < input$min.effect.of.interest,][sample(.N, n_false),]
+    } else if (input$fixed.prev.mode == "precision (min of interest)") {
+      true.estimates = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) <= input$min.effect.of.interest,][sample(.N, n_true),]
+      false.estimates = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) > input$min.effect.of.interest,][sample(.N, n_false),]
+    } else if (input$fixed.prev.mode == "non-biased") {
+      true.estimates = estimates.df[Published == T & Biased == F,][sample(.N, n_true),]
+      false.estimates = estimates.df[Published == T & Biased == T,][sample(.N, n_false),]
+    }
     
-    estimates.df <<- rbindlist(list(biased.estimates, nonbiased.estimates))
+    estimates.df <<- rbindlist(list(true.estimates, false.estimates))
   }
   
   # Performs replications
