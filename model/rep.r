@@ -65,7 +65,10 @@ perform.replications = function(input, rep.power = -1) {
       exp
     }, effect.index, rep.input)
     
-    rbindlist(exps)
+    orig.df = rep.ests[Effect.Index == effect.index,]
+    orig.df$RepSet = 0
+    
+    rbindlist(c(exps, orig.df))
   }
   
   # Runs a number of replications for each effect 
@@ -73,14 +76,6 @@ perform.replications = function(input, rep.power = -1) {
     rep(rep.ests$Effect.Index, n.reps),
     replicate.exp, rep.df, separate.reps = input$repro.repeats)
   rep.df = rbindlist(rep.df)
-  
-  rep.df = merge(rep.df,
-                 rep.ests[, .(Effect.Index, rep.sample.size,
-                              Original.Effect.Size, CI.low, CI.high, Biased)],
-                 by = "Effect.Index")
-  
-  setnames(rep.df,
-           c("CI.low.y","CI.high.y","Biased.y"), c("Original.CI.low", "Original.CI.high","Biased"))
   
   return (rep.df)
 }
@@ -208,14 +203,20 @@ calc.rep.measures = function(min.effect.of.interest, repro.detect) {
 # Computes many types of reproducibility measures from a set of replications
 evaluate.exp.rep = function (rep.exps, min.effect.of.interest, repro.detect) {
   
-  RMA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
-                              MeanTreated, SDTreated, Sample.Size, type = "RE"))
+  RMA = with(rep.exps[RepSet != 0,],
+             run.ma(MeanControl, SDControl, Sample.Size,
+                    MeanTreated, SDTreated, Sample.Size, type = "RE"))
   
-  FMA = with(rep.exps, run.ma(MeanControl, SDControl, Sample.Size,
-                              MeanTreated, SDTreated, Sample.Size, type = "FE"))
+  FMA = with(rep.exps[RepSet != 0,],
+             run.ma(MeanControl, SDControl, Sample.Size,
+                    MeanTreated, SDTreated, Sample.Size, type = "FE"))
+  
+  CMA = with(rep.exps,
+             run.ma(MeanControl, SDControl, Sample.Size,
+                    MeanTreated, SDTreated, Sample.Size, type = "RE"))
   
   result = map_dfr(reproducibility.success, rep.exps = rep.exps,
-                   RMA = RMA, FMA = FMA)
+                   RMA = RMA, FMA = FMA, CMA = CMA)
   
   original.estimate = rep.exps$Original.Effect.Size[1]
   real.effect = rep.exps$Real.Effect.Size[1]
@@ -310,10 +311,12 @@ evaluate.exp.rep = function (rep.exps, min.effect.of.interest, repro.detect) {
   result
 }
 
-# Computes success or failure in a replication according to a give criterium
-reproducibility.success = function (type, rep.exps, RMA, FMA) {
+# Computes success or failure in a replication according to a given criterion
+reproducibility.success = function (type, comb.exps, RMA, FMA, CMA) {
+  rep.exps = comb.exps[RepSet != 0, ]
+  
   success_df = tibble(
-    Type = c("VOTE_SSS_0_05", "VOTE_SSS_0_005", "FMA_SSS_0_05", "FMA_SSS_0_005", "RMA_SSS_0_05", "RMA_SSS_0_005", "ORIG_IN_RMA_PI", "ORIG_IN_FMA_CI", "RMA_IN_ORIG_CI"),#, "SMALL_TELESCOPE", "CMA_SSS_0_05", "CMA_SSS_0_005", "BF_3", "BF_10"),
+    Type = c("VOTE_SSS_0_05", "VOTE_SSS_0_005", "FMA_SSS_0_05", "FMA_SSS_0_005", "RMA_SSS_0_05", "RMA_SSS_0_005", "ORIG_IN_RMA_PI", "ORIG_IN_FMA_CI", "RMA_IN_ORIG_CI", "CMA_SSS_0_05", "CMA_SSS_0_005"),#, "SMALL_TELESCOPE", "BF_3", "BF_10"),
     
     Success = c(
       # Simple majority voting by significance (p < 0.05) and same sense
@@ -343,13 +346,15 @@ reproducibility.success = function (type, rep.exps, RMA, FMA) {
         rep.exps$Original.Effect.Size[1] < FMA$pred$ci.ub,
       
       # Summary of the replications is within the confidence interval of the original estimate
-      RMA$m$beta[[1]] > rep.exps$Original.CI.low[1] & RMA$m$beta[[1]] < rep.exps$Original.CI.high[1]
-      
-      # Small telescopes
-      
+      RMA$m$beta[[1]] > rep.exps$Original.CI.low[1] & RMA$m$beta[[1]] < rep.exps$Original.CI.high[1],
+
       # Combined meta-analysis is significant (p < 0.05)
+      rep.exps$Original.Effect.Size[1] / CMA$m$beta[[1]] > 0 & CMA$m$pval < 0.05,
       
       # Combined meta-analysis is significant (p < 0.005)
+      rep.exps$Original.Effect.Size[1] / CMA$m$beta[[1]] > 0 & CMA$m$pval < 0.005
+
+      # Small telescopes
       
       # Bayes factor for the alternative against the null hypothesis is larger than 3
       
