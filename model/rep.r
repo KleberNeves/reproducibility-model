@@ -18,7 +18,7 @@ make.rep.evaluation.tests = function(min.effect, repro.detect) {
 }
 
 # Returns a data frame with the results of replications
-perform.replications = function(input, rep.power = -1) {
+perform.replications = function(input, rep.power) {
   
   # Filters the published estimates
   rep.ests = estimates.df[Published == T & p.value <= Alpha]
@@ -30,7 +30,7 @@ perform.replications = function(input, rep.power = -1) {
   }
   
   # Calculate N for the desired power for the original estimate (not the real effect)
-  if (rep.power > 0) {
+  if (rep.power < 1) {
     calc.n = function (eff, sd, wanted.pwr, alpha) {
       pw = tryCatch({
         power.t.test(delta = eff, sd = sd, sig.level = alpha, power = wanted.pwr)$n
@@ -46,8 +46,7 @@ perform.replications = function(input, rep.power = -1) {
                                       rep.ests$Estimated.Pooled.SD,
                                       rep.power, input$alpha.threshold)
   } else {
-    # Setting rep.power = -1 means: "use the same sample size as the original"
-    rep.ests$rep.sample.size = input$typical.sample.size
+    rep.ests$rep.sample.size = input$typical.sample.size * rep.power
   }
   
   rep.ests$Original.Effect.Size = rep.ests$Estimated.Effect.Size
