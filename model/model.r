@@ -377,11 +377,7 @@ run.simulation = function(input) {
   # Performs replications
   if (input$calc.repro) {
     feedback.message("Replicating experiments ...")
-    rep_pwr = 0.95
-    if (!is.null(input$repro.power)) {
-      rep_pwr = input$repro.power
-    }
-    replications.df <<- perform.replications(input, rep.power = rep_pwr)
+    replications.df <<- perform.replications(input)
   }
   
   if (shiny_running) {
