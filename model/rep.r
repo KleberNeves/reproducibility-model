@@ -156,7 +156,7 @@ reproducibility.rate = function (rep.results.df, n.sample) {
   
   final.rates = rbind(rep.rates, other.rates)
   final.rates$N = n.sample
-  final.rates$Nprop = round(n.sample / nrow(rep.results.df), 2)
+  final.rates$Nprop = round(n.sample / length(unique(rep.results.df$Effect.Index)), 2)
   return (final.rates)
 }
 
@@ -171,13 +171,21 @@ calc.rep.measures = function(input) {
 # Computes many types of reproducibility measures from a set of replications
 evaluate.exp.rep = function (rep.exps, input) {
   
-  RMA = with(rep.exps[IsReplication == T,],
-             run.ma(MeanControl, SDControl, Sample.Size,
-                    MeanTreated, SDTreated, Sample.Size, type = "RE"))
-  
-  FMA = with(rep.exps[IsReplication == T,],
-             run.ma(MeanControl, SDControl, Sample.Size,
-                    MeanTreated, SDTreated, Sample.Size, type = "FE"))
+  if (nrow(rep.exps[IsReplication == T,]) > 1) {  
+    RMA = with(rep.exps[IsReplication == T,],
+               run.ma(MeanControl, SDControl, Sample.Size,
+                      MeanTreated, SDTreated, Sample.Size, type = "RE"))
+    
+    FMA = with(rep.exps[IsReplication == T,],
+               run.ma(MeanControl, SDControl, Sample.Size,
+                      MeanTreated, SDTreated, Sample.Size, type = "FE"))
+    
+    rep_estimate = RMA$m$beta[[1]]; rep_p = RMA$m$pval
+  } else {
+    RMA = NA; FMA = NA
+    rep_estimate = rep.exps[IsReplication == T, Estimated.Effect.Size][1]
+    rep_p = rep.exps[IsReplication == T, p.value][1]
+  }
   
   CMA = with(rep.exps,
              run.ma(MeanControl, SDControl, Sample.Size,
@@ -226,23 +234,23 @@ evaluate.exp.rep = function (rep.exps, input) {
                  # Exaggeration (RMA x Original)
                  data.frame(Type = NA,
                             Measure = "Exaggeration (RMA x Original)",
-                            Value = ifelse(RMA$m$beta[[1]] / original.estimate <= 0,
-                                           NA, RMA$m$beta[[1]] / original.estimate)),
+                            Value = ifelse(rep_estimate / original.estimate <= 0,
+                                           NA, rep_estimate / original.estimate)),
                  # Exaggeration (RMA x Real)
                  data.frame(Type = NA,
                             Measure = "Exaggeration (RMA x Real)",
-                            Value = ifelse(RMA$m$beta[[1]] / real.effect <= 0,
-                                           NA, RMA$m$beta[[1]] / real.effect)),
+                            Value = ifelse(rep_estimate / real.effect <= 0,
+                                           NA, rep_estimate / real.effect)),
                  # Signal (RMA x Original)
                  data.frame(Type = NA,
                             Measure = "Signal Error (RMA x Original)",
-                            Value = RMA$m$beta[[1]] / original.estimate <= 0 &
-                              RMA$m$pval < 0.05),
+                            Value = rep_estimate / original.estimate <= 0 &
+                              rep_p < 0.05),
                  # Signal (RMA x Real)
                  data.frame(Type = NA,
                             Measure = "Signal Error (RMA x Real)",
-                            Value = RMA$m$beta[[1]] / real.effect <= 0 &
-                              RMA$m$pval < 0.05)
+                            Value = rep_estimate / real.effect <= 0 &
+                              rep_p < 0.05)
   )
   
   result
@@ -250,7 +258,7 @@ evaluate.exp.rep = function (rep.exps, input) {
 
 # Computes success or failure in a replication according to a given criterion
 reproducibility.success = function (comb.exps, RMA, FMA, CMA) {
-
+  
   rep.exps = comb.exps[IsReplication == T, ]
   orig.exp = comb.exps[IsReplication == F, ]
   
@@ -264,7 +272,7 @@ reproducibility.success = function (comb.exps, RMA, FMA, CMA) {
   t_scores = rep.exps$Estimated.Effect.Size / sdps / sqrt(2 / rep.exps$Sample.Size)
   bf = (meta.ttestBF(t = t_scores, n1 = rep.exps$Sample.Size, n2 = rep.exps$Sample.Size, rscale = 1))@bayesFactor$bf
   
-  types = c("VOTE_SSS_005", "VOTE_SSS_0005", "FMA_SSS_005", "FMA_SSS_0005", "RMA_SSS_005", "RMA_SSS_0005", "ORIG_IN_RMA_PI", "ORIG_IN_FMA_CI", "RMA_IN_ORIG_CI", "CMA_SSS_005", "CMA_SSS_0005", "SMALL_TELESCOPE", "BF_3", "BF_10")
+  types = c("VOTE_SSS_005", "VOTE_SSS_0005", "FMA_SSS_005", "FMA_SSS_0005", "RMA_SSS_005", "RMA_SSS_0005", "ORIG_IN_RMA_PI", "ORIG_IN_FMA_CI", "REP_IN_ORIG_CI", "CMA_SSS_005", "CMA_SSS_0005", "SMALL_TELESCOPE", "BF_3", "BF_10")
   
   successes = c(
     # Simple majority voting by significance (p < 0.05) and same sense
@@ -274,27 +282,49 @@ reproducibility.success = function (comb.exps, RMA, FMA, CMA) {
     mean(rep.exps$p.value < 0.005) >= 0.5,
     
     # Significance (p < 0.05) and same sense of a fixed-effects meta-analysis
-    orig.exp$Estimated.Effect.Size[1] / FMA$m$beta[[1]] > 0 & FMA$m$pval < 0.05,
+    ifelse(
+      any(is.na(FMA)), NA,
+      orig.exp$Estimated.Effect.Size[1] / FMA$m$beta[[1]] > 0 & FMA$m$pval < 0.05
+    ),
     
     # Significance (p < 0.005) and same sense of the fixed-effects meta-analysis
-    orig.exp$Estimated.Effect.Size[1] / FMA$m$beta[[1]] > 0 & FMA$m$pval < 0.005,
+    ifelse(
+      any(is.na(FMA)), NA,
+      orig.exp$Estimated.Effect.Size[1] / FMA$m$beta[[1]] > 0 & FMA$m$pval < 0.005
+    ),
     
     # Significance (p < 0.05) and same sense of a random-effects meta-analysis
-    orig.exp$Estimated.Effect.Size[1] / RMA$m$beta[[1]] > 0 & RMA$m$pval < 0.05,
+    ifelse(
+      any(is.na(RMA)), NA,
+      orig.exp$Estimated.Effect.Size[1] / RMA$m$beta[[1]] > 0 & RMA$m$pval < 0.05
+    ),
     
     # Significance (p < 0.005) and same sense of the random-effects meta-analysis
-    orig.exp$Estimated.Effect.Size[1] / RMA$m$beta[[1]] > 0 & RMA$m$pval < 0.005,
+    ifelse(
+      any(is.na(RMA)), NA,
+      orig.exp$Estimated.Effect.Size[1] / RMA$m$beta[[1]] > 0 & RMA$m$pval < 0.005
+    ),
     
     # Original estimate is within the prediction interval of the random-effects meta-analysis of the replications
-    orig.exp$Estimated.Effect.Size[1] > RMA$pred$cr.lb &
-      orig.exp$Estimated.Effect.Size[1] < RMA$pred$cr.ub,
+    ifelse(
+      any(is.na(RMA)), NA,
+      orig.exp$Estimated.Effect.Size[1] > RMA$pred$cr.lb &
+        orig.exp$Estimated.Effect.Size[1] < RMA$pred$cr.ub
+    ),
     
     # Original estimate is within the confidence interval of the fixed-effects meta-analysis of the replications
+    ifelse(
+      any(is.na(FMA)), NA,
     orig.exp$Estimated.Effect.Size[1] > FMA$pred$ci.lb &
-      orig.exp$Estimated.Effect.Size[1] < FMA$pred$ci.ub,
+      orig.exp$Estimated.Effect.Size[1] < FMA$pred$ci.ub
+    ),
     
     # Summary of the replications is within the confidence interval of the original estimate
-    RMA$m$beta[[1]] > orig.exp$CI.low[1] & RMA$m$beta[[1]] < orig.exp$CI.high[1],
+    ifelse(
+      any(is.na(RMA)),
+      rep.exps$Estimated.Effect.Size[1] > orig.exp$CI.low[1] & rep.exps$Estimated.Effect.Size[1] < orig.exp$CI.high[1],
+      RMA$m$beta[[1]] > orig.exp$CI.low[1] & RMA$m$beta[[1]] < orig.exp$CI.high[1]
+    ),
     
     # Combined meta-analysis is significant (p < 0.05)
     orig.exp$Estimated.Effect.Size[1] / CMA$m$beta[[1]] > 0 & CMA$m$pval < 0.05,
@@ -303,7 +333,11 @@ reproducibility.success = function (comb.exps, RMA, FMA, CMA) {
     orig.exp$Estimated.Effect.Size[1] / CMA$m$beta[[1]] > 0 & CMA$m$pval < 0.005,
     
     # Small telescopes
-    RMA$m$beta[[1]] > d33,
+    ifelse(
+      any(is.na(RMA)),
+      rep.exps$Estimated.Effect.Size[1] > d33,
+      RMA$m$beta[[1]] > d33
+    ),
     
     # Bayes factor for the alternative against the null hypothesis is larger than 3
     bf >= 3,
