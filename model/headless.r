@@ -2,6 +2,7 @@
 # a.input - a list with the input parameters
 # saveFilename - the name of the zip file where results will be saved
 hlrun = function(a.input, saveFilename) {
+  print(a.input)
   shiny_running <<- FALSE
   run.simulation(a.input)
   dir.create(results_folder)
@@ -41,7 +42,7 @@ hlrun = function(a.input, saveFilename) {
   t = "Saved!"; print(t)
 }
 
-hlrun_comb = function(comb, fix.bias.prop = F) {
+hlrun_comb = function(comb) {
   # Assumes i is a counter existing outside its scope (need to change this)
   i <<- i + 1
   k = baseline.input
@@ -49,7 +50,7 @@ hlrun_comb = function(comb, fix.bias.prop = F) {
     k[n] = as.list(comb)[n]
   }
   k
-  hlrun(k, paste("Scenario", i), fix.bias.prop)
+  hlrun(k, paste("Scenario", i))
 }
 
 save.folder.sim.info = function (sim.folder,
