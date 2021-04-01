@@ -176,36 +176,45 @@ published = function(p.value, Alpha, negative.bias) {
 }
 
 # Check whether the condition to end the simulation was reached (sample size or number of effects)
-reached.sim.end = function(max.value, criteria, alpha, perc = 1) {
+reached.sim.end = function(input) {
   if (input$fixed.prev.mode == "none") {
-    if (criteria == "At a given number of published effects") {
-      v = estimates.df[Published == T, .N]
-    } else if (criteria == "At a given number of positive published effects") {
-      v = estimates.df[Published == T & p.value <= alpha, .N]
-    } else if (criteria == "At a given total sample size") {
-      v = sum(estimates.df$Sample.Size)
-    } else {
-      stop("Invalid value for simulation ending criterium.")
-    }
-    has_ended = (v >= max.value * perc)
+    v = sim.end.tracking(input)
+    has_ended = (v >= input$sim.end.value)
   } else {
-    if (input$fixed.prev.mode == "above minimum of interest") {
-      n_true = estimates.df[Published == T & abs(Real.Effect.Size) >= input$min.effect.of.interest, .N]
-      n_false = estimates.df[Published == T & abs(Real.Effect.Size) < input$min.effect.of.interest, .N]
-    } else if (input$fixed.prev.mode == "precision") {
-      n_true = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) <= input$min.effect.of.interest, .N]
-      n_false = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) > input$min.effect.of.interest, .N]
-    } else if (input$fixed.prev.mode == "non-biased") {
-      n_true = estimates.df[Published == T & Biased == F, .N]
-      n_false = estimates.df[Published == T & Biased == T, .N]
-    } else {
-      stop("Invalid value for fixed prevalence mode parameter.")
-    }
-    has_ended = (n_false >= input$sim.end.value * input$fixed.prev &
-                   n_true >= input$sim.end.value * (1 - input$fixed.prev))
+    ns = sim.end.fixed.tracking(input)
+    has_ended = (ns$n_true >= input$sim.end.value * input$fixed.prev &
+                   ns$n_false >= input$sim.end.value * (1 - input$fixed.prev))
   }
-  
   has_ended
+}
+
+sim.end.fixed.tracking = function (input) {
+  if (input$fixed.prev.mode == "above minimum of interest") {
+    n_true = estimates.df[Published == T & abs(Real.Effect.Size) >= input$min.effect.of.interest, .N]
+    n_false = estimates.df[Published == T & abs(Real.Effect.Size) < input$min.effect.of.interest, .N]
+  } else if (input$fixed.prev.mode == "precision") {
+    n_true = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) <= input$min.effect.of.interest, .N]
+    n_false = estimates.df[Published == T & abs(Real.Effect.Size - Estimated.Effect.Size) > input$min.effect.of.interest, .N]
+  } else if (input$fixed.prev.mode == "non-biased") {
+    n_true = estimates.df[Published == T & Biased == F, .N]
+    n_false = estimates.df[Published == T & Biased == T, .N]
+  } else {
+    stop("Invalid value for fixed prevalence mode parameter.")
+  }
+  list(n_true = n_true, n_false = n_false)
+}
+
+sim.end.tracking = function (input) {
+  if (input$how.sim.ends == "At a given number of published effects") {
+    v = estimates.df[Published == T, .N]
+  } else if (input$how.sim.ends == "At a given number of positive published effects") {
+    v = estimates.df[Published == T & p.value <= input$alpha.threshold, .N]
+  } else if (input$how.sim.ends == "At a given total sample size") {
+    v = sum(estimates.df$Sample.Size)
+  } else {
+    stop("Invalid value for simulation ending criterium.")
+  }
+  v
 }
 
 # Function to simulate the whole experimental procedure, from data generation to analysis and publication
@@ -252,7 +261,7 @@ perform.experiment = function(effect.index, input) {
 # Executes the simulated scientist behavior
 scientist.action = function(input) {
   # If simulation ended, return
-  if (reached.sim.end(input$sim.end.value, input$how.sim.ends, input$alpha.threshold)) {
+  if (reached.sim.end(input)) {
     return (1)
   }
   
@@ -325,7 +334,15 @@ run.simulation = function(input) {
     it = scientist.action(input)
     
     # Progress feedback
-    progress = round(100 * sim.end.tracking(input$how.sim.ends, input$alpha.threshold) / input$sim.end.value)
+    if (input$fixed.prev.mode == "none") {
+      progress = round(100 * sim.end.tracking(input) / input$sim.end.value)
+    } else {
+      ns = sim.end.fixed.tracking(input)
+      prog_t = min(c(1, ns$n_true / (input$sim.end.value * input$fixed.prev)))
+      prog_f = min(c(1, ns$n_false / (input$sim.end.value * (1 - input$fixed.prev))))
+      progress = round(50 * (prog_t + prog_f))
+      # print(glue("{prog_t} + {prog_f}"))
+    }
     
     if (progress %% 25 == 0 & give.fb) {
       feedback.message(glue("{progress}% done ..."))
