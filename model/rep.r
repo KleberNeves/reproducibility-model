@@ -1,6 +1,7 @@
 library(data.table)
 library(metafor)
 library(tidyr)
+library(purrr)
 library(BayesFactor)
 
 # Measures to evaluate the corpus of estimates of effect sizes
@@ -104,7 +105,9 @@ reproducibility.rate = function (rep.results.df, n.sample) {
     TN = sum(TN),
     TP = sum(TP),
     FP = sum(FP),
-    FN = sum(FN)
+    FN = sum(FN),
+    SENS = sum(TP) / (sum(TP) + sum(FN)),
+    SPEC = sum(TN) / (sum(TN) + sum(FP))
   ), by = .(RepSet, Type)]
   
   cast.prev = function (x, measure) {
@@ -203,6 +206,8 @@ evaluate.exp.rep = function (rep.exps, input) {
     is_real = !rep.exps$Biased[1]
   } else if (input$fixed.prev.mode == "precision") {
     is_real = abs(real.effect - original.estimate) <= input$repro.detect
+  } else {
+    is_real = abs(real.effect) >= input$min.effect.of.interest
   }
   
   get_2x2_table = function (is_real) {
@@ -270,9 +275,11 @@ reproducibility.success = function (comb.exps, RMA, FMA, CMA) {
   
   sdps = sqrt((rep.exps$SDControl ^ 2 + rep.exps$SDTreated ^ 2) / 2)
   t_scores = rep.exps$Estimated.Effect.Size / sdps / sqrt(2 / rep.exps$Sample.Size)
-  bf = (meta.ttestBF(t = t_scores, n1 = rep.exps$Sample.Size, n2 = rep.exps$Sample.Size, rscale = 1))@bayesFactor$bf
-  
-  types = c("VOTE_SSS_005", "VOTE_SSS_0005", "FMA_SSS_005", "FMA_SSS_0005", "RMA_SSS_005", "RMA_SSS_0005", "ORIG_IN_RMA_PI", "ORIG_IN_FMA_CI", "REP_IN_ORIG_CI", "CMA_SSS_005", "CMA_SSS_0005", "SMALL_TELESCOPE", "BF_3", "BF_10")
+  bf = tryCatch({
+    (meta.ttestBF(t = t_scores, n1 = rep.exps$Sample.Size, n2 = rep.exps$Sample.Size, rscale = 1))@bayesFactor$bf
+  }, error = function (e) {
+    0 # TODO understand this error
+  })
   
   successes = c(
     # Simple majority voting by significance (p < 0.05) and same sense
@@ -346,7 +353,7 @@ reproducibility.success = function (comb.exps, RMA, FMA, CMA) {
     bf >= 10
   )
   
-  success_df = tibble(Type = types, Success = successes)
+  success_df = tibble(Type = global_rep_types, Success = successes)
   
   success_df
 }
