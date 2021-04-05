@@ -7,6 +7,8 @@ library(zip)
 library(pwr)
 library(data.table)
 
+global_rep_types = c("VOTE_SSS_005", "VOTE_SSS_0005", "FMA_SSS_005", "FMA_SSS_0005", "RMA_SSS_005", "RMA_SSS_0005", "ORIG_IN_RMA_PI", "ORIG_IN_FMA_CI", "REP_IN_ORIG_CI", "CMA_SSS_005", "CMA_SSS_0005", "SMALL_TELESCOPE", "BF_3", "BF_10")
+
 possible.outcomes = c(
   "False Positives",
   "False Negatives",
@@ -158,12 +160,17 @@ preset.scenarios = c("",
                      "Continuous, low power, high bias"
 )
 
-# Help text
-overview_help_text = read_file("./help/overview.html")
-parameters_help_text = read_file("./help/parameters.html")
-outcomes_help_text = read_file("./help/outcomes.html")
+tryCatch({
+  # Help text
+  overview_help_text = read_file("./help/overview.html")
+  parameters_help_text = read_file("./help/parameters.html")
+  outcomes_help_text = read_file("./help/outcomes.html")
 
-# Source model code
-source("model.r")
-source("eval.r")
-source("rep.r")
+  # Source model code
+  source("model.r")
+  source("eval.r")
+  source("rep.r")
+}, error = function (e) {
+  print("Some files not found. If you're sourcing this for analysis, don't worry.")
+  # print(e)
+})
