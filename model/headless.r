@@ -17,6 +17,9 @@ hlrun = function(a.input, saveFilename) {
   fn = paste(tmpdir,"/pars.csv", sep = ""); fs = c(fs, fn)
   write.table(x = param.df, file = fn, sep = ";", row.names = F)
   
+  fn = paste0(tmpdir, "/input.RData"); fs = c(fs, fn)
+  save(a.input, file = fn)
+  
   if (a.input$calc.repro) {
     fn = paste(tmpdir,"/replications.csv", sep = ""); fs = c(fs, fn)
     write.table(x = replications.df, file = fn, sep = ";", row.names = F)
@@ -35,8 +38,6 @@ hlrun = function(a.input, saveFilename) {
   fn = paste(tmpdir,"/effects_distribution.png", sep = ""); fs = c(fs, fn)
   ggsave(plot = p, file = fn, dpi = 150, width = 7, height = 4)
   
-  # save.folder.sim.info(results_folder)
-  
   zipr(zipfile = paste(results_folder, saveFilename, ".zip", sep=""), files = fs)
   
   t = "Saved!"; print(t)
@@ -50,11 +51,11 @@ hlrun_comb = function(comb) {
     k[n] = as.list(comb)[n]
   }
   k
+  
   hlrun(k, paste("Scenario", i))
 }
 
-save.folder.sim.info = function (sim.folder,
-                                 save.baseline.input = T, save.model.folder = T) {
+save.folder.sim.info = function (sim.folder) {
   fn = paste0(sim.folder, "/baseline_input.RData")
   save(baseline.input, file = fn)
   
@@ -69,7 +70,7 @@ save.folder.sim.info = function (sim.folder,
 }
 
 make.full.sweep.df = function (run.list) {
-  d = expand.grid(run.list)
+  d = expand.grid(run.list, stringsAsFactors = F)
   d
 }
 
