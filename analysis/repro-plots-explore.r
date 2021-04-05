@@ -8,7 +8,9 @@ data_dir = "/home/kleber/Dropbox/Scientific Research/Projects/Modelo Reprodutibi
 
 # Prepare the data
 repdata = get.figure.data.rep(data_dir)
-repdata.backup = repdata
+# repdata.backup = repdata
+save(repdata, file = paste0("repdata.RData"))
+# load("repdata.RData")
 
 repdata = repdata %>%
   mutate(across(where(~ !anyNA(as.numeric(.x))), as.numeric))
@@ -32,58 +34,108 @@ figtheme = theme_linedraw() +
 
 theme_set(figtheme)
 
+### General line plot
+# X is one of the parameters
+# Y is reproducibility, sensitivity or specificity
+# Lines represent the different measures of reproducibility (you can specify a subset)
+# Facetted in grid by two of the parameters
+
+filtered_data = function (D, x, to_plot, facetting, types, to_include, aggregate_prev = F) {
+  # Filter the data if a filter is given
+  if (!rlang::quo_is_null(to_include)) {
+    D = D %>% filter(rlang::eval_tidy(to_include, D))
+  }
+  
+  # Filter the types to plot
+  if (to_plot == "reproducibility") { to_plot_suffix = "ReproRate" }
+  else if (to_plot == "sensitivity") { to_plot_suffix = "SENS" }
+  else if (to_plot == "specificity") { to_plot_suffix = "SPEC" }
+  
+  to_plot_cols = paste0(types, "_", to_plot_suffix)
+  
+  keep = c(to_plot_cols, facetting, x)
+  if (aggregate_prev) keep = c(keep, "Prev_Lit")
+  
+  D = D %>% select(all_of(keep))
+  browser()
+  if (aggregate_prev) {
+    agg_cols = c(facetting, x, "Prev_Lit")
+    D = D %>% group_by(across(all_of(agg_cols))) %>%
+      summarise(across(all_of(to_plot_cols), sum))
+  }
+  
+  D = D %>%
+    pivot_longer(cols = -all_of(c(x, facetting))) %>%
+    mutate(type = name %>% str_remove(paste0("_", to_plot_suffix)))
+}
+
+general_rep_plot = function (D, x, to_plot, facetting, types, to_include = NULL, show_points = F, aggregate_prev = F) {
+  
+  # Prepare tidy dataset for ggplot
+  D = filtered_data(D, x, to_plot, facetting, types, to_include, aggregate_prev)
+  D$xvar = D[[x]]
+  
+  # Build the plot
+  facet_formula = as.formula(paste(facetting[1], "~", facetting[2]))
+  
+  p = ggplot(D) +
+    aes(x = xvar, y = value, group = type, color = type) +
+    geom_line(stat = "summary", size = 0.65) +
+    scale_y_continuous(limits = c(0,1)) +
+    facet_grid(facet_formula) +
+    labs(
+      color = "",
+      x = x,
+      y = to_plot %>% str_to_title()
+    )
+  
+  if (is.numeric(D$xvar))
+    p = p + scale_x_continuous(limits = c(0,1))
+  
+  if (show_points)
+    p = p + geom_point(size = 1.5)
+  
+  if (to_plot == "reproducibility") 
+    p = p + geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "darkgray")
+  
+  p
+}
+
 ### Tracking plot
 # X is prevalence, Y is reproducibility, sensitivity or specificity
 # Lines represent the different measures of reproducibility (you can specify a subset)
 # Facetted in grid by two of the parameters
 
-tracking_plot = function (D, to_plot, prev, facetting, types, to_include = NULL) {
+tracking_plot = function (D, to_plot, prev, facetting, types, to_include = NULL, show_points = F) {
   
-  # Filter the data if a filter is given
-  if (!rlang::quo_is_null(enquo(to_include))) {
-    D = D %>% filter(rlang::eval_tidy(enquo(to_include), D))
-  }
-  
-  # Filter the types to plot
-  if (to_plot == "reproducibility") { to_plot = "ReproRate" }
-  else if (to_plot == "sensitivity") { to_plot = "SENS" }
-  else if (to_plot == "specificity") { to_plot = "SPEC" }
-  
-  if (prev == "sample") prev = "Prev_Sample"
-  else if (prev == "literature") prev = "Prev_Lit"
-  
-  to_plot = paste0(types, "_", to_plot)
-  
-  keep = c(to_plot, facetting, prev)
-  D = D %>% select(all_of(keep))
-  # browser()
-  # Prepare tidy dataset for ggplot
-  D = D %>%
-    pivot_longer(cols = -all_of(c(prev, facetting))) %>%
-    mutate(type = name %>% str_remove(paste0("_", to_plot)))
-  
-  D$prev = D[[prev]]
-  # browser()
-  # Build the plot
-  p = ggplot(D) +
-    aes(x = prev, y = value, group = type, color = type) +
-    geom_line(stat = "summary") +
-    geom_point() +
-    facet_grid(as.formula(paste(facetting[1], "~", facetting[2])))
-  
-  p
+  if (prev == "sample") x = "Prev_Sample"
+  else if (prev == "literature") x = "Prev_Lit"
+
+  general_rep_plot(D, x, to_plot, facetting, types, enquo(to_include), show_points)
 }
 
-types_to_plot = global_rep_types[c(1,2,9,12)]
-tracking_plot(repdata, "reproducibility", prev = "literature", facetting = c("interlab.label", "power.label"), types = types_to_plot, to_include = (N == 10))
+### Aggregate tracking plot
+# X is one of the parameters (except prevalence)
+# Y is sensitivity or specificity
+# Lines represent the different measures of reproducibility (you can specify a subset)
+# Facetted in grid by two of the parameters (except prevalence)
+# Data is aggregated for all prevalences available
 
+aggregate_plot = function (D, x, to_plot, facetting, types, to_include = NULL, show_points = F) {
+  
+  general_rep_plot(D, x, to_plot, facetting, types, enquo(to_include), show_points, aggregate_prev = T)
+ 
+}
 
+aggregate_plot(repdata, x = "interlab.label", "sensitivity", facetting = c("bias.label", "power.label"), types = types_to_plot, to_include = (N == 10))
 
 ### RMSE plot
-# X is either bias or power or interlab variation
-# Y is reproducibility, sensitivity or specificity, averaged across prevalences
+# X is one of the parameters
+# Y is RMSE
 # Bar or lollipop plot
 # Facetted in grid by two of the parameters
+
+
 
 ### ROC Curve plot
 # X is FP / (FP + TN)
@@ -98,189 +150,9 @@ tracking_plot(repdata, "reproducibility", prev = "literature", facetting = c("in
 # Additionally, you can pass a filter to the functions, to be applied before
 # All these setting are registered in the caption of the figure and in the filename
 
-plot.rep.type = function (D, dist_shape, all_or_20, prev_all, which_measure, exclude_types = c()) {
-  DS = D %>% filter(scenarioName == dist_shape &
-                      Sample == all_or_20 &
-                      Measure == which_measure &
-                      !(Type %in% exclude_types))
-  
-  p = ggplot(DS)
-  
-  if (prev_all) {
-    p = p + aes(x = `Prev_Sample_All`)
-    xlabel = 'Prevalence of "True" Effects (literature)'
-    prevlabel = "Prevalence (literature)"
-  } else {
-    p = p + aes(x = `Prev_Sample_20`)
-    xlabel = 'Prevalence of "True" Effects (in the sample)'
-    prevlabel = 'Prevalence (in the sample)'
-  }
-  
-  tt = paste0(dist_shape, " - ", all_or_20, " exps, ", which_measure, " x ", prevlabel)
-  
-  p = p + aes(y = value, group = Type, color = as.factor(Type)) +
-    geom_point(position = position_jitter(width = 0.0015)) +
-    geom_line(stat = "summary", size = 0.6) +
-    ylim(c(0,1)) + xlim(c(-0.05,1.05)) +
-    facet_grid(bias.label ~ power.label) +
-    scale_color_manual(values = c("brown", "springgreen4", "dodgerblue4", "dodgerblue2", "paleturquoise4")) +
-    labs(x = xlabel, y = which_measure,
-         title = tt, color = "Definition") +
-    figtheme
-  
-  if (which_measure == "Reproducibility") {
-    p = p + geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey")
-  }
-  
-  ggsave(plot = p,
-         filename = paste0(tt, ".png"),
-         width = 12, height = 7, dpi = 150)
-  
-  p
-}
+##### Test plots #####
 
-plot.error = function (D, dist_shape, all_or_20, prev_all, which_measure, which_compare) {
-  DS = D %>% filter(scenarioName == dist_shape &
-                      Sample == all_or_20 &
-                      Measure == which_measure &
-                      Compare == which_compare)
-  
-  p = ggplot(DS)
-  
-  if (prev_all) {
-    p = p + aes(x = `Prev_Sample_All`)
-    xlabel = 'Prevalence of "True" Effects (literature)'
-    prevlabel = "Prevalence (literature)"
-  } else {
-    p = p + aes(x = `Prev_Sample_20`)
-    xlabel = 'Prevalence of "True" Effects (in the sample)'
-    prevlabel = 'Prevalence (in the sample)'
-  }
-  
-  tt = paste0(dist_shape, " - ", all_or_20, " exps, ", which_measure, " (x ", which_compare,") x ", prevlabel)
-  
-  p = p + aes(y = value, group = bias.label, color = as.factor(bias.label)) +
-    geom_point(position = position_jitter(width = 0.0015)) +
-    geom_line(stat = "summary", size = 0.6) +
-    xlim(c(-0.05,1.05)) +
-    facet_wrap(~power.label) +
-    scale_color_manual(values = c("blue","brown","green")) +
-    labs(x = xlabel, y = paste0(which_measure, "(compared to ", which_compare, ")"),
-         title = tt, color = "Bias") +
-    figtheme
-  
-  if (which_measure != "Exaggeration") {
-    p = p + ylim(c(0,1))
-  }
-  
-  ggsave(plot = p,
-         filename = paste0(tt, ".png"),
-         width = 12, height = 4, dpi = 150)
-  
-  p
-}
+types_to_plot = global_rep_types[c(1,2,9,12)]
+tracking_plot(repdata, "reproducibility", prev = "literature", facetting = c("interlab.label", "power.label"), types = types_to_plot, to_include = (N == 10))
 
-# Plots the reproducibility, sensitivity or specificity of the many definitions of "success",
-# facetting for power and interlab variation (instead of bias)
-plot.rep.type2 = function (D, dist_shape, all_or_20, prev_all, which_measure, exclude_types = c()) {
-  DS = D %>% filter(scenarioName == dist_shape &
-                      Sample == all_or_20 &
-                      Measure == which_measure &
-                      !(Type %in% exclude_types))
-  
-  p = ggplot(DS)
-  
-  if (prev_all) {
-    p = p + aes(x = `Prev_SampleBias_All`)
-    xlabel = 'Prevalence of Unbiased Effects (literature)'
-    prevlabel = "Prevalence (literature)"
-  } else {
-    p = p + aes(x = `Prev_SampleBias_20`)
-    xlabel = 'Prevalence of Unbiased Effects (in the sample)'
-    prevlabel = 'Prevalence (in the sample)'
-  }
-  
-  tt = paste0(dist_shape, " - ", all_or_20, " exps, ", which_measure, " x ", prevlabel)
-  
-  p = p + aes(y = value, group = Type, color = as.factor(Type)) +
-    geom_point() +
-    geom_line(stat = "summary", size = 0.6) +
-    ylim(c(0,1)) + xlim(c(-0.05,1.05)) +
-    facet_grid(interlab.var.label ~ power.label) +
-    scale_color_manual(values = c("brown", "springgreen4", "dodgerblue4", "dodgerblue2", "paleturquoise4")) +
-    labs(x = xlabel, y = which_measure,
-         title = tt, color = "Definition") +
-    figtheme
-  
-  if (which_measure == "Reproducibility") {
-    p = p + geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey")
-  }
-  
-  ggsave(plot = p,
-         filename = paste0(tt, ".png"),
-         width = 12, height = 7, dpi = 150)
-  
-  p
-}
-
-### REPRODUCIBILITY RATE PLOTS
-
-D = repdata %>% select(scenarioName, Prev_Sample_20, Prev_Sample_All, bias.label, power.label, RepSet, 21:50)
-D = D %>% melt(id.vars = c("scenarioName", "Prev_Sample_20", "Prev_Sample_All", "bias.label", "power.label", "RepSet"))
-D$Sample = ifelse(str_detect(D$variable, "_All"), "All", "20")
-D$Measure = str_remove_all(str_extract(D$variable, "_.+?_"),"_")
-D$Measure = car::recode(D$Measure, "'ReproRate' = 'Reproducibility'")
-D$Type = str_remove_all(str_extract(D$variable, ".+?_"),"_")
-
-plot.rep.type(D, "Single Normal", "All", T, "Reproducibility")
-plot.rep.type(D, "Single Normal", "20", T, "Reproducibility")
-plot.rep.type(D, "Single Normal", "20", F, "Reproducibility")
-plot.rep.type(D, "Single Normal", "All", F, "Specificity")
-plot.rep.type(D, "Single Normal", "20", F, "Specificity")
-plot.rep.type(D, "Single Normal", "All", F, "Sensitivity")
-plot.rep.type(D, "Single Normal", "20", F, "Sensitivity")
-
-plot.rep.type(D, "Dichotomous", "All", T, "Reproducibility")
-plot.rep.type(D, "Dichotomous", "20", T, "Reproducibility")
-plot.rep.type(D, "Dichotomous", "20", F, "Reproducibility")
-plot.rep.type(D, "Dichotomous", "All", F, "Specificity")
-plot.rep.type(D, "Dichotomous", "20", F, "Specificity")
-plot.rep.type(D, "Dichotomous", "All", F, "Sensitivity")
-plot.rep.type(D, "Dichotomous", "20", F, "Sensitivity")
-
-
-### ERROR PLOTS
-
-D = repdata %>% select(scenarioName, Prev_Sample_20, Prev_Sample_All, bias.label, power.label, RepSet, 51:58)
-D = D %>% melt(id.vars = c("scenarioName", "Prev_Sample_20", "Prev_Sample_All", "bias.label", "power.label", "RepSet"))
-D$Sample = ifelse(str_detect(D$variable, "_All"), "All", "20")
-D$Measure = str_remove_all(str_extract(D$variable, ".+?_"),"_")
-D$Compare = str_remove_all(str_extract(D$variable, "x_.+?_"),"[_x]")
-
-plot.error(D, "Single Normal", "All", F, "Exaggeration", "Original")
-plot.error(D, "Single Normal", "20", F, "Exaggeration", "Real")
-plot.error(D, "Single Normal", "All", F, "Signal", "Original")
-plot.error(D, "Single Normal", "20", F, "Signal", "Real")
-
-plot.error(D, "Dichotomous", "All", F, "Exaggeration", "Original")
-plot.error(D, "Dichotomous", "20", F, "Exaggeration", "Real")
-plot.error(D, "Dichotomous", "All", F, "Signal", "Original")
-plot.error(D, "Dichotomous", "20", F, "Signal", "Real")
-
-
-####### REPRODUCIBILITY PLOTS BIAS-BASED
-
-D = repdata %>% select(scenarioName, Prev_SampleBias_20, Prev_SampleBias_All, interlab.var.label, bias.label, power.label, RepSet, 21:70)
-D = D %>% melt(id.vars = c("scenarioName", "Prev_SampleBias_20", "Prev_SampleBias_All", "interlab.var.label", "bias.label", "power.label", "RepSet"))
-D$Sample = ifelse(str_detect(D$variable, "_All"), "All", "20")
-D$Measure = str_remove_all(str_extract(D$variable, "_.+?_"),"_")
-D$Measure = car::recode(D$Measure, "'ReproRate' = 'Reproducibility'")
-D$Type = str_remove_all(str_extract(D$variable, ".+?_"),"_")
-
-plot.rep.type2(D, "Two Peaks (SD = 0.1)", "All", T, "Reproducibility")
-plot.rep.type2(D, "Two Peaks (SD = 0.1)", "20", T, "Reproducibility")
-plot.rep.type2(D, "Two Peaks (SD = 0.1)", "20", F, "Reproducibility")
-plot.rep.type2(D, "Two Peaks (SD = 0.1)", "All", F, "Specificity")
-plot.rep.type2(D, "Two Peaks (SD = 0.1)", "All", F, "SpecificityBias")
-plot.rep.type2(D, "Two Peaks (SD = 0.1)", "All", F, "Sensitivity")
-plot.rep.type2(D, "Two Peaks (SD = 0.1)", "All", F, "SensitivityBias")
+aggregate_plot(repdata, "sensitivity", prev = "literature", x = "interlab.label", facetting = c("bias.label", "power.label"), types = types_to_plot, to_include = (N == 10))
