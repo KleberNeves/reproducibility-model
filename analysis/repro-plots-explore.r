@@ -1,29 +1,102 @@
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 source("helper.r")
+source("global.r")
 
-# Actually getting the data
-data_dir = "/home/kleber/Dropbox/Scientific Research/Projects/Modelo Reprodutibilidade/Results/0720_2nd_Part_Run/"
+# Load the data
+data_dir = "/home/kleber/Dropbox/Scientific Research/Projects/Modelo Reprodutibilidade/Results2/0421_Part2_All_Figures_Small2/"
+
+# Prepare the data
 repdata = get.figure.data.rep(data_dir)
 repdata.backup = repdata
 
-# Convert to numeric
-nonnum_cols = c("calc.repro", "how.sim.ends", "scenarioName")
-num_cols = !(colnames(repdata) %in% nonnum_cols)
-repdata[,num_cols] = sapply(repdata[,num_cols], as.numeric)
+repdata = repdata %>%
+  mutate(across(where(~ !anyNA(as.numeric(.x))), as.numeric))
 
 repdata = repdata %>%
-  mutate(param_odds = weightB / (1 - weightB),
-         true_odds = `% Above minimum` / (1 - `% Above minimum`),
-         power.label = paste0("Power = ", 100 * typical.power, "%"),
-         bias.label = paste0("Bias = ", 100 * bias.level, "%"))
+  mutate(
+    power.label = paste0("Power = ", 100 * typical.power, "%"),
+    bias.label = paste0("Bias = ", 100 * bias.level, "%"),
+    interlab.label = paste0("Interlab Var = ", round(100 * interlab.var / (interlab.var + 1)), "%"),
+  )
 
 repdata$scenarioName = car::recode(repdata$scenarioName, "'Peaks SD 0.5' = 'Overlapping Peaks'; 'Peaks SD 0.2' = 'Two Peaks'")
 
 
-#########  Drawing reproducibility plots  ###########
+##### Plot functions #####
 
-figtheme = theme_linedraw()
+figtheme = theme_linedraw() +
+  theme(
+    legend.position = "bottom"
+  )
+
+theme_set(figtheme)
+
+### Tracking plot
+# X is prevalence, Y is reproducibility, sensitivity or specificity
+# Lines represent the different measures of reproducibility (you can specify a subset)
+# Facetted in grid by two of the parameters
+
+tracking_plot = function (D, to_plot, prev, facetting, types, to_include = NULL) {
+  
+  # Filter the data if a filter is given
+  if (!rlang::quo_is_null(enquo(to_include))) {
+    D = D %>% filter(rlang::eval_tidy(enquo(to_include), D))
+  }
+  
+  # Filter the types to plot
+  if (to_plot == "reproducibility") { to_plot = "ReproRate" }
+  else if (to_plot == "sensitivity") { to_plot = "SENS" }
+  else if (to_plot == "specificity") { to_plot = "SPEC" }
+  
+  if (prev == "sample") prev = "Prev_Sample"
+  else if (prev == "literature") prev = "Prev_Lit"
+  
+  to_plot = paste0(types, "_", to_plot)
+  
+  keep = c(to_plot, facetting, prev)
+  D = D %>% select(all_of(keep))
+  # browser()
+  # Prepare tidy dataset for ggplot
+  D = D %>%
+    pivot_longer(cols = -all_of(c(prev, facetting))) %>%
+    mutate(type = name %>% str_remove(paste0("_", to_plot)))
+  
+  D$prev = D[[prev]]
+  # browser()
+  # Build the plot
+  p = ggplot(D) +
+    aes(x = prev, y = value, group = type, color = type) +
+    geom_line(stat = "summary") +
+    geom_point() +
+    facet_grid(as.formula(paste(facetting[1], "~", facetting[2])))
+  
+  p
+}
+
+types_to_plot = global_rep_types[c(1,2,9,12)]
+tracking_plot(repdata, "reproducibility", prev = "literature", facetting = c("interlab.label", "power.label"), types = types_to_plot, to_include = (N == 10))
+
+
+
+### RMSE plot
+# X is either bias or power or interlab variation
+# Y is reproducibility, sensitivity or specificity, averaged across prevalences
+# Bar or lollipop plot
+# Facetted in grid by two of the parameters
+
+### ROC Curve plot
+# X is FP / (FP + TN)
+# Y is TP / (TP + FN)
+# Points
+# Color represent either bias, power or interlab variation
+# Facetted in grid by two of the parameters
+
+### Extra settings
+# For facetting or coloring or X axis, parameters can be:
+#   bias, power, interlab variation, repro.power, etc
+# Additionally, you can pass a filter to the functions, to be applied before
+# All these setting are registered in the caption of the figure and in the filename
 
 plot.rep.type = function (D, dist_shape, all_or_20, prev_all, which_measure, exclude_types = c()) {
   DS = D %>% filter(scenarioName == dist_shape &
