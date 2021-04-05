@@ -2,41 +2,50 @@
 
 # Loading required libraries
 library(zip)
-library(plyr)
 library(dplyr)
+library(purrr)
 library(ggplot2)
-library(reshape2)
 library(stringr)
 
 # Defining the functions to extract simulation results from the zip files
 get.figure.data.eval = function(datapath, only_published = T) {
   zips = paste(datapath, list.files(datapath, ".zip$"), sep ="")
-  df = ldply(zips, get.data.from.zip.eval, only_published = only_published, .progress = "text")
+  total = length(zips); i = 0
+  df = map_dfr(zips, function (z) {
+    i <<- i + 1
+    print(paste0(i, "/", total))
+    get.data.from.zip.eval(z, only_published = only_published)
+  })
   df
 }
 
 get.figure.data.rep = function(datapath) {
   zips = paste(datapath, list.files(datapath, ".zip$"), sep ="")
-  df = ldply(zips, get.data.from.zip.rep, .progress = "text")
+  total = length(zips); i = 0
+  df = map_dfr(zips, function (z) {
+    i <<- i + 1
+    print(paste0(i, "/", total))
+    get.data.from.zip.rep(z)
+  })
   df
 }
 
 get.data.from.zip.eval = function(zipfile, only_published = T) {
   
-  source("../model/eval.r", local = T)
+  source("./eval.r", local = T)
   
   tmpdir = tempdir()
   unzip(zipfile = zipfile, exdir = tmpdir)
   
   param.df = read.table(
-    file = paste(tmpdir, "/pars.csv", sep = ""), sep = ";", stringsAsFactors = F, header = T)
+    file = paste0(tmpdir, "/pars.csv"), sep = ";", stringsAsFactors = F, header = T)
   estimates.df = read.table(
-    file = paste(tmpdir, "/estimates.csv", sep = ""), sep = ";", stringsAsFactors = F, header = T)
+    file = paste0(tmpdir, "/estimates.csv"), sep = ";", stringsAsFactors = F, header = T)
   
   eval.df = make.evaluation.tests() %>% filter(Published.Only == only_published)
   
-  eval.df = dcast(eval.df, . ~ Measure + Statistic, value.var = "Value")
-  param.df = dcast(param.df, . ~ Parameter, value.var = "Value")
+  eval.df = eval.df %>% pivot_wider(names_from = c(Measure, Statistic), values_from = Value)
+  param.df = param.df %>% pivot_wider(names_from = Parameter, values_from = Value)
   
   d = cbind(param.df, eval.df)
   
@@ -47,8 +56,8 @@ get.data.from.zip.rep = function(zipfile) {
   
   # There's probably a better way of doing this, but I'll figure it out later,
   # performance is not critical at this point
-  source("../model/eval.r", local = T)
-  source("../model/rep.r", local = T)
+  source("./eval.r", local = T)
+  source("./rep.r", local = T)
   
   tmpdir = tempdir()
   unzip(zipfile = zipfile, exdir = tmpdir)
@@ -56,21 +65,27 @@ get.data.from.zip.rep = function(zipfile) {
   param.df = read.table(
     file = paste(tmpdir, "/pars.csv", sep = ""), sep = ";", stringsAsFactors = F, header = T)
   
-  param.df = dcast(param.df, . ~ Parameter, value.var = "Value")
+  param.df = param.df %>% pivot_wider(names_from = Parameter, values_from = Value)
+  
+  load(paste0(tmpdir, "/input.RData"))
   
   replications.df = data.table(
-    read.table(file = paste(tmpdir, "/replications.csv", sep = ""),
+    read.table(file = paste0(tmpdir, "/replications.csv"),
                sep = ";", stringsAsFactors = F, header = T))
   
-  rep.eval.df = make.rep.evaluation.tests(param.df$min.effect.of.interest, param.df$repro.detect)
+  rep.eval.df = make.rep.evaluation.tests(a.input)
   
   rep.eval.df = cbind(
-    dcast(rep.eval.df %>% filter(!is.na(Type)) %>% select(-LongType),
-          RepSet ~ Type + name + N, value.var = "value"),
-    dcast(rep.eval.df %>% filter(is.na(Type)) %>% select(-Type, -LongType),
-          RepSet ~ name + N, value.var = "value") %>% select(-RepSet)
+    rep.eval.df %>%
+      filter(!is.na(Type)) %>%
+      pivot_wider(id_cols = RepSet, names_from = c(Type, name, N, Nprop), values_from = value),
+    rep.eval.df %>%
+      filter(is.na(Type)) %>%
+      select(-Type) %>%
+      pivot_wider(id_cols = RepSet, names_from = c(name, N, Nprop), values_from = value)
   )
   
   d = cbind(param.df, rep.eval.df)
   
+  d
 }
