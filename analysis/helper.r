@@ -75,17 +75,18 @@ get.data.from.zip.rep = function(zipfile) {
   
   rep.eval.df = make.rep.evaluation.tests(a.input)
   
-  rep.eval.df = cbind(
-    rep.eval.df %>%
-      filter(!is.na(Type)) %>%
-      pivot_wider(id_cols = RepSet, names_from = c(Type, name, N, Nprop), values_from = value),
-    rep.eval.df %>%
-      filter(is.na(Type)) %>%
-      select(-Type) %>%
-      pivot_wider(id_cols = RepSet, names_from = c(name, N, Nprop), values_from = value)
-  )
+  d1 = rep.eval.df %>%
+    filter(!is.na(Type)) %>%
+    pivot_wider(id_cols = c(RepSet, N, Nprop), names_from = c(Type, name), values_from = value) %>%
+    select(-RepSet)
   
-  d = cbind(param.df, rep.eval.df)
+  d2 = rep.eval.df %>%
+    filter(is.na(Type)) %>%
+    select(-Type) %>%
+    pivot_wider(id_cols = c(RepSet, N, Nprop), names_from = c(name), values_from = value) %>%
+    select(-RepSet, -N, -Nprop)
+  
+  d = cbind(param.df, d1, d2)
   
   d
 }
