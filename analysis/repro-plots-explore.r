@@ -9,8 +9,8 @@ data_dir = "/home/kleber/Dropbox/Scientific Research/Projects/Modelo Reprodutibi
 # Prepare the data
 repdata = get.figure.data.rep(data_dir)
 # repdata.backup = repdata
-save(repdata, file = paste0("repdata.RData"))
-# load("repdata.RData")
+# save(repdata, file = paste0("repdata.RData"))
+load("repdata.RData")
 
 repdata = repdata %>%
   mutate(across(where(~ !anyNA(as.numeric(.x))), as.numeric))
@@ -40,6 +40,12 @@ theme_set(figtheme)
 # Lines represent the different measures of reproducibility (you can specify a subset)
 # Facetted in grid by two of the parameters
 
+### Extra settings
+# For facetting or coloring or X axis, parameters can be:
+#   bias, power, interlab variation, repro.power, etc
+# Additionally, you can pass a filter to the functions, to be applied before
+# All these setting are registered in the caption of the figure and in the filename
+
 filtered_data = function (D, x, to_plot, facetting, types, to_include, aggregate_prev = F) {
   # Filter the data if a filter is given
   if (!rlang::quo_is_null(to_include)) {
@@ -48,25 +54,41 @@ filtered_data = function (D, x, to_plot, facetting, types, to_include, aggregate
   
   # Filter the types to plot
   if (to_plot == "reproducibility") { to_plot_suffix = "ReproRate" }
-  else if (to_plot == "sensitivity") { to_plot_suffix = "SENS" }
-  else if (to_plot == "specificity") { to_plot_suffix = "SPEC" }
+  else if (aggregate_prev) {
+    if (to_plot == "sensitivity") { to_plot_suffix = c("TP", "FN") }
+    else if (to_plot == "specificity") { to_plot_suffix = c("TN", "FP") }
+  } else {
+    if (to_plot == "sensitivity") { to_plot_suffix = "SENS" }
+    else if (to_plot == "specificity") { to_plot_suffix = "SPEC" }
+  }
   
-  to_plot_cols = paste0(types, "_", to_plot_suffix)
+  to_plot_cols = paste0(sort(rep(types, length(to_plot_suffix))), "_", to_plot_suffix)
   
   keep = c(to_plot_cols, facetting, x)
   if (aggregate_prev) keep = c(keep, "Prev_Lit")
   
   D = D %>% select(all_of(keep))
-  browser()
+  
   if (aggregate_prev) {
     agg_cols = c(facetting, x, "Prev_Lit")
     D = D %>% group_by(across(all_of(agg_cols))) %>%
-      summarise(across(all_of(to_plot_cols), sum))
+      summarise(across(all_of(to_plot_cols), sum)) %>%
+      pivot_longer(cols = -all_of(agg_cols)) %>%
+      mutate(
+        type = name %>% str_remove_all("(_TP|_TN|_FP|_FN)"),
+        measure = name %>% str_extract("(_TP|_TN|_FP|_FN)") %>% str_remove_all("_")
+      ) %>%
+      select(-name) %>%
+      pivot_wider(id_cols = c(type, all_of(agg_cols)), names_from = measure, values_from = value)
+    
+    if (to_plot == "sensitivity") {
+      D = D %>% mutate(value = TP / (TP + FN))
+    } else if (to_plot == "specificity") {
+      D = D %>% mutate(value = TN / (TN + FP))
+    }
   }
   
-  D = D %>%
-    pivot_longer(cols = -all_of(c(x, facetting))) %>%
-    mutate(type = name %>% str_remove(paste0("_", to_plot_suffix)))
+  D
 }
 
 general_rep_plot = function (D, x, to_plot, facetting, types, to_include = NULL, show_points = F, aggregate_prev = F) {
@@ -86,7 +108,8 @@ general_rep_plot = function (D, x, to_plot, facetting, types, to_include = NULL,
     labs(
       color = "",
       x = x,
-      y = to_plot %>% str_to_title()
+      y = to_plot %>% str_to_title(),
+      title = to_plot %>% str_to_title()
     )
   
   if (is.numeric(D$xvar))
@@ -127,7 +150,7 @@ aggregate_plot = function (D, x, to_plot, facetting, types, to_include = NULL, s
  
 }
 
-aggregate_plot(repdata, x = "interlab.label", "sensitivity", facetting = c("bias.label", "power.label"), types = types_to_plot, to_include = (N == 10))
+
 
 ### RMSE plot
 # X is one of the parameters
@@ -135,24 +158,15 @@ aggregate_plot(repdata, x = "interlab.label", "sensitivity", facetting = c("bias
 # Bar or lollipop plot
 # Facetted in grid by two of the parameters
 
+rmse_plot = function () {
+  
+}
 
-
-### ROC Curve plot
-# X is FP / (FP + TN)
-# Y is TP / (TP + FN)
-# Points
-# Color represent either bias, power or interlab variation
-# Facetted in grid by two of the parameters
-
-### Extra settings
-# For facetting or coloring or X axis, parameters can be:
-#   bias, power, interlab variation, repro.power, etc
-# Additionally, you can pass a filter to the functions, to be applied before
-# All these setting are registered in the caption of the figure and in the filename
 
 ##### Test plots #####
 
 types_to_plot = global_rep_types[c(1,2,9,12)]
 tracking_plot(repdata, "reproducibility", prev = "literature", facetting = c("interlab.label", "power.label"), types = types_to_plot, to_include = (N == 10))
 
-aggregate_plot(repdata, "sensitivity", prev = "literature", x = "interlab.label", facetting = c("bias.label", "power.label"), types = types_to_plot, to_include = (N == 10))
+types_to_plot = global_rep_types[c(1,2,9,12)]
+aggregate_plot(repdata, x = "interlab.label", "sensitivity", facetting = c("bias.label", "power.label"), types = types_to_plot, to_include = (N == 10))
