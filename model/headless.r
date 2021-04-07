@@ -56,6 +56,8 @@ hlrun_comb = function(comb) {
 }
 
 save.folder.sim.info = function (sim.folder) {
+  dir.create(sim.folder)
+  
   fn = paste0(sim.folder, "/baseline_input.RData")
   save(baseline.input, file = fn)
   
