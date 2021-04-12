@@ -45,6 +45,8 @@ hlrun = function(a.input, saveFilename) {
   return (0)
 }
 
+# Runs a combination of parameters given by a dataframe, substituting the values in the input parameteres list
+# Can use a global counter or a local counter (column i in the dataframe) - the counter is used to name the zip files with the results
 hlrun_comb = function(comb, global_counter = T) {
   if (global_counter) {
     # Assumes i is a counter existing outside its scope (need to change this)
@@ -88,6 +90,7 @@ make.full.sweep.df = function (run.list, run_indicator = F) {
     d$i = 1:nrow(d)
     d$has_run = F
   }
+  d = post_process_sweep_df(d, run_indicator)
   d
 }
 
@@ -98,10 +101,46 @@ make.sweep.df = function (run.list, run_indicator = F) {
     d = as.data.frame(d)
     colnames(d) = names(run.list)
   }
+  d = post_process_sweep_df(d, run_indicator)
+  d
+}
+
+# It has helpers for setting the underlying distributions using scenarioName as a parameter. Specifying any of the distribution parameters ("sdA","sdB","meanB","weightB") in the sweep overrides this helper.
+post_process_sweep_df = function (d, run_indicator) {
+  if (any(colnames(d) == "scenarioName") & !any(colnames(d) %in% c("sdA","sdB","meanB","weightB"))) {
+    if (all(d$scenarioName %in% c("Single Normal", "Two Peaks"))) {
+      d$sdA = ifelse(
+        d$scenarioName == "Single Normal", 1,
+        ifelse(
+          d$scenarioName == "Two Peaks", 0.1,
+          NA)
+      )
+      d$sdB = ifelse(
+        d$scenarioName == "Single Normal", 0,
+        ifelse(
+          d$scenarioName == "Two Peaks", 0.1,
+          NA)
+      )
+      d$meanB = ifelse(
+        d$scenarioName == "Single Normal", 0,
+        ifelse(
+          d$scenarioName == "Two Peaks", 1,
+          NA)
+      )
+      d$weightB = ifelse(
+        d$scenarioName == "Single Normal", 0,
+        ifelse(
+          d$scenarioName == "Two Peaks", 0.5,
+          NA)
+      )
+    }
+  }
+  
   if (run_indicator) {
     d$i = 1:nrow(d)
     d$has_run = F
   }
+  
   d
 }
 
