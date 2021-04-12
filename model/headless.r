@@ -41,49 +41,79 @@ hlrun = function(a.input, saveFilename) {
   zipr(zipfile = paste(results_folder, saveFilename, ".zip", sep=""), files = fs)
   
   t = "Saved!"; print(t)
+  
+  return (0)
 }
 
-hlrun_comb = function(comb) {
-  # Assumes i is a counter existing outside its scope (need to change this)
-  i <<- i + 1
+hlrun_comb = function(comb, global_counter = T) {
+  if (global_counter) {
+    # Assumes i is a counter existing outside its scope (need to change this)
+    i <<- i + 1
+    li = i
+  } else {
+    li = comb$i
+    comb$i = NULL
+  }
+  
   k = baseline.input
   for (n in colnames(comb)) {
     k[n] = as.list(comb)[n]
   }
   k
   
-  hlrun(k, paste("Scenario", i))
+  hlrun(k, paste("Scenario", li))
 }
 
 save.folder.sim.info = function (sim.folder) {
   dir.create(sim.folder)
   
   fn = paste0(sim.folder, "/baseline_input.RData")
-  save(baseline.input, file = fn)
+  if (!file.exists(fn)) save(baseline.input, file = fn)
   
   fn = paste0(sim.folder, "/run_list.RData")
-  save(run.list, file = fn)
+  if (!file.exists(fn)) save(run.list, file = fn)
   
   fn = paste0(sim.folder, "/model_path.txt")
-  f = file(fn)
-  writeLines(c(dirname(rstudioapi::getActiveDocumentContext()$path),
-               paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/global.r")), f)
-  close(f)
+  if (!file.exists(fn)) {
+    f = file(fn)
+    writeLines(c(dirname(rstudioapi::getActiveDocumentContext()$path),
+                 paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/global.r")), f)
+    close(f)
+  }
 }
 
-make.full.sweep.df = function (run.list) {
+make.full.sweep.df = function (run.list, run_indicator = F) {
   d = expand.grid(run.list, stringsAsFactors = F)
+  if (run_indicator) {
+    d$i = 1:nrow(d)
+    d$has_run = F
+  }
   d
 }
 
-make.sweep.df = function (run.list) {
+make.sweep.df = function (run.list, run_indicator = F) {
   d = do.call(rbind, lapply(names(run.list), get_par_sweep))
   d = d[!duplicated(d),]
   if (!is.data.frame(d)) {
     d = as.data.frame(d)
     colnames(d) = names(run.list)
   }
+  if (run_indicator) {
+    d$i = 1:nrow(d)
+    d$has_run = F
+  }
   d
+}
+
+# Assumes the existence of a run.df data frame with the combinations
+run_sweep_df = function () {
+  if (!exists("run.df")) stop("run.df not found.")
+  walk(1:nrow(run.df), function (i) {
+    if (!run.df[i, "has_run"]) {
+      hlr = hlrun_comb(run.df[i, which(colnames(run.df) != "has_run")], global_counter = F)
+      if (hlr == 0) run.df[i, "has_run"] <<- T
+    }
+  })
 }
 
 get_par_sweep = function(a.par) {
