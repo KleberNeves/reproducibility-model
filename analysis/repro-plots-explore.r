@@ -4,12 +4,31 @@ source("helper.r")
 source("global.r")
 
 # Load the data
-data_dir = "/home/kleber/Dropbox/Scientific Research/Projects/Modelo Reprodutibilidade/Results2/0421_Part2_All_Figures_Small2/"
+data_dir = "/home/kleber/Dropbox/Scientific Research/Projects/Modelo Reprodutibilidade/Results2/0421_Part2_Sweep1/"
 
 # Prepare the data
-repdata = get.figure.data.rep(data_dir)
+
+# To process the data by parts
+zips = paste(data_dir, list.files(data_dir, ".zip$"), sep ="")
+total = length(zips)
+i = 0
+process_df = tibble(i = 1:total, processed = F)
+repdata_list = vector(mode = "list", length = total)
+
+walk(zips, function (z) {
+  i <<- i + 1
+  print(paste0(i, "/", total))
+  get.data.from.zip.rep(z)
+})
+
+
+# To process the data at once
+# repdata = get.figure.data.rep(data_dir)
+
+
 # repdata.backup = repdata
 # save(repdata, file = paste0("repdata.RData"))
+# To load previously processed data
 load("repdata.RData")
 
 repdata = repdata %>%

@@ -275,11 +275,12 @@ reproducibility.success = function (comb.exps, RMA, FMA, CMA) {
   
   sdps = sqrt((rep.exps$SDControl ^ 2 + rep.exps$SDTreated ^ 2) / 2)
   t_scores = rep.exps$Estimated.Effect.Size / sdps / sqrt(2 / rep.exps$Sample.Size)
-  bf = tryCatch({
-    (meta.ttestBF(t = t_scores, n1 = rep.exps$Sample.Size, n2 = rep.exps$Sample.Size, rscale = 1))@bayesFactor$bf
-  }, error = function (e) {
-    0 # TODO understand this error
-  })
+  bf = NA
+  # bf = tryCatch({
+  #   (meta.ttestBF(t = t_scores, n1 = rep.exps$Sample.Size, n2 = rep.exps$Sample.Size, rscale = 1))@bayesFactor$bf
+  # }, error = function (e) {
+  #   0 # TODO understand this error
+  # })
   
   successes = c(
     # Simple majority voting by significance (p < 0.05) and same sense
@@ -347,10 +348,10 @@ reproducibility.success = function (comb.exps, RMA, FMA, CMA) {
     ),
     
     # Bayes factor for the alternative against the null hypothesis is larger than 3
-    bf >= 3,
+    NA, #bf >= 3,
     
     # Bayes factor for the alternative against the null hypothesis is larger than 10
-    bf >= 10
+    NA #bf >= 10
   )
   
   success_df = tibble(Type = global_rep_types, Success = successes)
