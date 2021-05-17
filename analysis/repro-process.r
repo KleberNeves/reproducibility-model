@@ -8,6 +8,7 @@ data_dir = "/home/kleber/Dropbox/Scientific Research/Projects/Modelo Reprodutibi
 # To process the data by parts, allowing manual interruptions
 zips = paste(data_dir, list.files(data_dir, ".zip$"), sep ="")
 repdata_list = vector(mode = "list", length = length(zips))
+total = length(zips)
 
 process_df = tibble(i = 1:length(zips), z = zips, processed = F)
 repdata = tibble()

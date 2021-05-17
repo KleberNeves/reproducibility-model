@@ -1,58 +1,3 @@
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-
-source("helper.r")
-source("global.r")
-
-# Load the data
-data_dir = "/home/kleber/Dropbox/Scientific Research/Projects/Modelo Reprodutibilidade/Results2/0421_Part2_Sweep1/"
-
-# Prepare the data
-
-# To process the data by parts
-zips = paste(data_dir, list.files(data_dir, ".zip$"), sep ="")
-total = length(zips)
-i = 0
-process_df = tibble(i = 1:total, processed = F)
-repdata_list = vector(mode = "list", length = total)
-
-walk(zips, function (z) {
-  i <<- i + 1
-  print(paste0(i, "/", total))
-  get.data.from.zip.rep(z)
-})
-
-
-# To process the data at once
-# repdata = get.figure.data.rep(data_dir)
-
-
-# repdata.backup = repdata
-# save(repdata, file = paste0("repdata.RData"))
-# To load previously processed data
-load("repdata.RData")
-
-repdata = repdata %>%
-  mutate(across(where(~ !anyNA(as.numeric(.x))), as.numeric))
-
-repdata = repdata %>%
-  mutate(
-    power.label = paste0("Power = ", 100 * typical.power, "%"),
-    bias.label = paste0("Bias = ", 100 * bias.level, "%"),
-    interlab.label = paste0("Interlab Var = ", round(100 * interlab.var / (interlab.var + 1)), "%"),
-  )
-
-repdata$scenarioName = car::recode(repdata$scenarioName, "'Peaks SD 0.5' = 'Overlapping Peaks'; 'Peaks SD 0.2' = 'Two Peaks'")
-
-
-##### Plot functions #####
-
-figtheme = theme_linedraw() +
-  theme(
-    legend.position = "bottom"
-  )
-
-theme_set(figtheme)
-
 ### General line plot
 # X is one of the parameters
 # Y is reproducibility, sensitivity or specificity
@@ -192,8 +137,6 @@ aggregate_plot = function (D, x, to_plot, facetting, types, to_include = NULL, s
  
 }
 
-
-
 ### RMSE plot
 # X is one of the parameters
 # Y is RMSE
@@ -205,14 +148,3 @@ rmse_plot = function (D, x, prev, facetting, types, to_include = NULL, show_poin
   general_rep_plot(D, x, "root mean square error", facetting, types, enquo(to_include), show_points, aggregate_prev = T, which_agg_prev = prev, xlabel = xlabel)
   
 }
-
-types_to_plot = global_rep_types[c(1,2,9,12)]
-rmse_plot(repdata, x = "interlab.label", prev = "Prev_Lit", facetting = c("bias.label", "power.label"), types = types_to_plot, to_include = (N == 10))
-
-##### Test plots #####
-
-types_to_plot = global_rep_types[c(1,2,9,12)]
-tracking_plot(repdata, "reproducibility", prev = "literature", facetting = c("interlab.label", "power.label"), types = types_to_plot, to_include = (N == 10))
-
-types_to_plot = global_rep_types[c(1,2,9,12)]
-aggregate_plot(repdata, x = "interlab.label", "sensitivity", facetting = c("bias.label", "power.label"), types = types_to_plot, to_include = (N == 10))
