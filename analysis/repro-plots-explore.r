@@ -163,9 +163,7 @@ rmse_plot = function (D, x, prev, facetting, types, to_include = NULL, show_poin
   
 }
 
-plot_specification_curve = function (repro_rate_to_plot, spec_parameters, repro_rate_to_plot2 = NULL) {
-  spec_param_values = map(spec_parameters, ~unique(DF[[.x]])) %>% unlist()
-  
+add_specification = function (DF, spec_parameters) {
   DF_WIDE = bind_cols(
     map(1:length(spec_parameters), function (i) {
       par_col = spec_parameters[i]
@@ -181,6 +179,14 @@ plot_specification_curve = function (repro_rate_to_plot, spec_parameters, repro_
   )
   
   DF = bind_cols(list(DF, DF_WIDE))
+  
+  DF
+}
+
+plot_specification_curve = function (DF, repro_rate_to_plot, spec_parameters, repro_rate_to_plot2 = NULL) {
+  spec_param_values = map(spec_parameters, ~unique(DF[[.x]])) %>% unlist()
+  
+  DF = add_specification(DF, spec_parameters)
   # browser()
   DF$repro_rate = DF[[repro_rate_to_plot]]
   if (!is.null(repro_rate_to_plot2)) {
@@ -228,4 +234,79 @@ plot_specification_curve = function (repro_rate_to_plot, spec_parameters, repro_
           axis.text.y = element_text(size = 11), plot.title = element_blank())
   
   plot_grid(plot_repro, plot_spec2, align = "v", axis = "l", ncol = 1, nrow = 2, rel_heights = c(1,2))
+}
+
+plot_specification_frequency = function(DF, spec_parameters, repro_rate_to_sort) {
+  DF = add_specification(DF, spec_parameters)
+  # browser()
+  DF$repro_rate = DF[[repro_rate_to_sort]]
+  
+  spec_param_values = map(spec_parameters, ~unique(DF[[.x]])) %>% unlist()
+  spec_pal = c("Reds","Blues","Oranges","Purples","Greens")[1:length(spec_parameters)]
+  spec_colors = map2(spec_parameters, spec_pal, function (a_par, a_pal) {
+    RColorBrewer::brewer.pal(DF[[a_par]] %>% unique() %>% length(), a_pal)
+  }) %>% unlist()
+  
+  SPECIFICATION = DF %>%
+    select(all_of(c("index","repro_rate", spec_param_values))) %>%
+    pivot_longer(cols = -c(index, repro_rate), names_to = "param") %>%
+    mutate(param_type = param %>% str_extract(".+?=") %>% str_remove(" ="),
+           param_type = factor(param_type, levels = unique(param_type)))
+  
+  DF = SPECIFICATION %>%
+    arrange(repro_rate)
+  
+  unique_indexes = unique(DF$index)
+  DF$bindex = map_int(DF$index, function (x) { which(unique_indexes == x) })
+  
+  DF = DF %>%
+    mutate(bin = (bindex - 1) %/% 10) %>%
+    group_by(bin, param_type, param, .drop = F) %>%
+    summarise(N = sum(value)) %>%
+    mutate(perc = N / sum(N))
+  browser()
+  plot_spec = ggplot(DF) +
+    aes(x = bin, y = perc, fill = param) +
+    geom_col(position = "stack") +
+    labs(x = "", y = "") +
+    scale_fill_manual(breaks = spec_param_values, values = spec_colors) +
+    scale_x_discrete(expand = c(0,0)) +
+    scale_y_continuous(breaks = c(0, 0.5, 1)) +
+    facet_wrap(~param_type, ncol = 1) +
+    theme_minimal() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+          panel.grid = element_blank(), legend.position = "none",
+          axis.text.y = element_text(size = 11))
+  
+  plot_spec
+}
+
+plot_specification_frequency_simple = function (DF, spec_parameters) {
+  DF = add_specification(DF, spec_parameters)
+  # browser()
+  spec_param_values = map(spec_parameters, ~unique(DF[[.x]])) %>% unlist()
+  spec_pal = c("Reds","Purples","Blues","Oranges","Greens")[1:length(spec_parameters)]
+  spec_colors = map2(spec_parameters, spec_pal, function (a_par, a_pal) {
+    RColorBrewer::brewer.pal(DF[[a_par]] %>% unique() %>% length(), a_pal)
+  }) %>% unlist()
+  
+  SPECIFICATION = DF %>%
+    select(all_of(c("index", spec_param_values))) %>%
+    pivot_longer(cols = -index, names_to = "param") %>%
+    mutate(param_type = param %>% str_extract(".+?=") %>% str_remove(" ="),
+           param_type = factor(param_type, levels = unique(param_type)))
+  
+  DF = SPECIFICATION %>%
+    group_by(param_type, param, .drop = F) %>%
+    summarise(N = sum(value)) %>%
+    mutate(perc = N / sum(N))
+  
+  ggplot(DF) +
+    aes(x = param_type, y = perc, fill = param) +
+    geom_col(position = "stack") +
+    labs(x = "", y = "") +
+    scale_x_discrete(expand = c(0,0)) +
+    scale_y_continuous(breaks = c(0, 0.5, 1)) +
+    scale_fill_manual(breaks = spec_param_values, values = spec_colors) +
+    theme_minimal()
 }
