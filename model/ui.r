@@ -96,12 +96,12 @@ ui <- fluidPage(
                 textInput("scenarioName",
                           "Choose a name for your simulation (optional)", ""),
                 
-                br(),
-
-                checkboxInput('calc.repro', "Calculate reproducibility rates?", value = F),
-                sliderInput('repro.repeats', 'Sample size for reproducibility rate:',
-                            min = 1, max = 10, value = 1,
-                            step = 1, round = 0, ticks = F),
+                # br(),
+                # 
+                # checkboxInput('calc.repro', "Calculate reproducibility rates?", value = F),
+                # sliderInput('repro.repeats', 'Sample size for reproducibility rate:',
+                #             min = 1, max = 10, value = 1,
+                #             step = 1, round = 0, ticks = F),
                 br(),
                 
                 actionButton("runButton", "Run simulation!"),
