@@ -92,7 +92,7 @@ reproducibility.rate = function (rep.results.df, n.sample) {
   
   sample.results.df = rep.results.df[Effect.Index %in% eff.sample]
   
-  # Summarises replication results (mean, min, max) for the sample
+  # Summarizes replication results (mean, min, max) for the sample
   rep.rates = sample.results.df %>% filter(!is.na(Type)) %>%
     pivot_wider(id_cols = c("Effect.Index", "Type", "RepSet"),
                 names_from = "Measure", values_from = "Value") %>%
@@ -101,13 +101,13 @@ reproducibility.rate = function (rep.results.df, n.sample) {
   # overall replication rate, PPV/precision, recall
   rep.rates = data.table(rep.rates)
   rep.rates = rep.rates[, .(
-    ReproRate = mean(Success),
-    TN = sum(TN),
-    TP = sum(TP),
-    FP = sum(FP),
-    FN = sum(FN),
-    SENS = sum(TP) / (sum(TP) + sum(FN)),
-    SPEC = sum(TN) / (sum(TN) + sum(FP))
+    ReproRate = mean(Success, na.rm = T),
+    TN = sum(TN, na.rm = T),
+    TP = sum(TP, na.rm = T),
+    FP = sum(FP, na.rm = T),
+    FN = sum(FN, na.rm = T),
+    SENS = sum(TP, na.rm = T) / (sum(TP, na.rm = T) + sum(FN, na.rm = T)),
+    SPEC = sum(TN, na.rm = T) / (sum(TN, na.rm = T) + sum(FP, na.rm = T))
   ), by = .(RepSet, Type)]
   
   cast.prev = function (x, measure) {
@@ -118,7 +118,7 @@ reproducibility.rate = function (rep.results.df, n.sample) {
     data.table(x)
   }
   
-  # Prevalences in the sample
+  # Prevalence in the sample
   temp.df = cast.prev(sample.results.df, "Is.Real")
   other.rates.sample = temp.df[, .(Prev_Sample = mean(Is.Real, na.rm = T)), by = .(RepSet)]
   

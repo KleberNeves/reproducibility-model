@@ -38,7 +38,7 @@ filtered_data = function (D, x, to_plot, facetting, types, to_include, aggregate
   if (aggregate_prev & to_plot != "root mean square error") {
     agg_cols = c(facetting, x, which_agg_prev)
     D = D %>% group_by(across(all_of(agg_cols))) %>%
-      summarise(across(all_of(to_plot_cols), sum)) %>%
+      summarise(across(all_of(to_plot_cols), sum, na.rm = T)) %>%
       pivot_longer(cols = -all_of(agg_cols)) %>%
       mutate(
         type = name %>% str_remove_all("(_TP|_TN|_FP|_FN)"),
@@ -264,7 +264,7 @@ plot_specification_frequency = function(DF, spec_parameters, repro_rate_to_sort)
     group_by(bin, param_type, param, .drop = F) %>%
     summarise(N = sum(value)) %>%
     mutate(perc = N / sum(N))
-  browser()
+  # browser()
   plot_spec = ggplot(DF) +
     aes(x = bin, y = perc, fill = param) +
     geom_col(position = "stack") +
