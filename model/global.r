@@ -147,10 +147,18 @@ shiny_running = TRUE
 
 sanitize_shiny_input = function (a.input) {
   if ("reactivevalues" %in% class(a.input)) {
-    return (reactiveValuesToList(a.input))
+    inputlist = reactiveValuesToList(a.input)
   } else {
-    return (a.input)
+    inputlist = a.input
   }
+  standard_input = single.dist.input
+  
+  missing = names(single.dist.input)[!(names(single.dist.input) %in% names(inputlist))]
+  for (x in missing) {
+    inputlist[[x]] = standard_input[[x]]
+  }
+  
+  return (inputlist)
 }
 
 preset.scenarios = c("",

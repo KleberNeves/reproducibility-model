@@ -142,7 +142,11 @@ ui <- fluidPage(
                 
                 h4("Estimated Effect Sizes"),
                 
-                plotOutput('outcome.plot')
+                plotOutput('outcome.plot'),
+                
+                h4("p-value Curve"),
+                
+                plotOutput('p.curve.plot')
          ),
          
          column(2,

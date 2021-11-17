@@ -4,8 +4,9 @@ server <- function(input, output, session) {
   # Obtain output data
   outcome.dist = eventReactive(c(input$show.published.only, input$show.biased, input$runButton, input$updateButton), {
     if (nrow(estimates.df) == 0) { return (data.frame()) }
+
     x = estimates.df %>% mutate(`Above Minimum` = abs(Real.Effect.Size) > Min.Interesting.Effect) %>%
-      select(1:7, `Above Minimum`, Biased, Published)
+      select(Effect.Index, Real.Effect.Size, Estimated.Effect.Size, Estimated.Pooled.SD, MeanControl, SDControl, MeanTreated, p.value, `Above Minimum`, Biased, Published)
     if (input$show.published.only) {
       x = x %>% filter(Published)
     }
@@ -23,37 +24,44 @@ server <- function(input, output, session) {
  
   # Output plot with estimates
   make.plot = eventReactive(c(input$show.published.only, input$show.density, input$show.biased, input$show.histogram, input$runButton, input$updateButton), {
-    # browser()
+    
     d = outcome.dist()
     
-    if (nrow(d) == 0) { ggplot() }
-    else {
-      # Significance threshold
-      # c_alpha = qt(input$alpha.threshold / 2, df = 2 * input$typical.sample.size - 2) / sqrt(input$typical.sample.size)
-      # 
-      p = ggplot(d, aes(x = Estimated.Effect.Size))
-      
-      if (input$show.histogram) {
-        p = p + geom_histogram(aes(y = ..density..), bins = 50, color = "black", fill = "lightgray", size = 0.35)
-      }
-      
-      if (input$show.density) {
-        p = p + geom_density(size = 0.6)
-      }
-      
-      p = p +
-        geom_vline(xintercept = input$min.effect.of.interest, color = "cornflowerblue", linetype = "dashed", size = 1, alpha = 0.9) +
-        geom_vline(xintercept = -input$min.effect.of.interest, color = "cornflowerblue", linetype = "dashed", size = 1, alpha = 0.9) +
-        # geom_vline(xintercept = c_alpha, color = "firebrick", linetype = "dashed", size = 1, alpha = 0.9) +
-        # geom_vline(xintercept = -c_alpha, color = "firebrick", linetype = "dashed", size = 1, alpha = 0.9) +
-        labs(x = "Effect Size", y = "Frequency") +
-        theme_linedraw()
-      
-      # if (param.df[param.df$Parameter == "effects.dist","Value"] %in% c("1","2","3","5")) {
-        p = p + geom_density(data = data.frame(x = eff.dist.ref()), aes(x = x), size = 1)
-      # }
-      p
+    if (nrow(d) == 0) { return (ggplot()) }
+    
+    p = ggplot(d, aes(x = Estimated.Effect.Size))
+    
+    if (input$show.histogram) {
+      p = p + geom_histogram(aes(y = ..density..), bins = 50, color = "black", fill = "lightgray", size = 0.35)
     }
+    
+    if (input$show.density) {
+      p = p + geom_density(size = 0.6)
+    }
+    
+    p = p +
+      geom_vline(xintercept = input$min.effect.of.interest, color = "cornflowerblue", linetype = "dashed", size = 1, alpha = 0.9) +
+      geom_vline(xintercept = -input$min.effect.of.interest, color = "cornflowerblue", linetype = "dashed", size = 1, alpha = 0.9) +
+      labs(x = "Effect Size", y = "Frequency") +
+      theme_linedraw()
+    
+    p = p + geom_density(data = data.frame(x = eff.dist.ref()), aes(x = x), size = 1)
+    
+    p
+  })
+  
+  make.p.curve.plot = eventReactive(c(input$show.published.only, input$runButton, input$updateButton), {
+    d = outcome.dist()
+    
+    if (nrow(d) == 0) { return (ggplot()) }
+    
+    p = ggplot(d, aes(x = p.value)) +
+      geom_histogram(aes(y = ..density..), bins = 50, color = "black", fill = "lightgray", size = 0.35) +
+      geom_vline(xintercept = input$alpha.threshold, color = "cornflowerblue", linetype = "dashed", size = 1, alpha = 0.9) +
+      labs(x = "p-value", y = "Frequency") +
+      theme_linedraw()
+    
+    p
   })
   
   # Input underlying distribution plot 
@@ -286,6 +294,10 @@ server <- function(input, output, session) {
   
   output$outcome.plot = renderPlot({
     make.plot()
+  })
+  
+  output$p.curve.plot = renderPlot({
+    make.p.curve.plot()
   })
   
   output$EffDistPlot = renderPlot({
