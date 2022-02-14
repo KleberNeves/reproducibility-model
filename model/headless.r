@@ -66,6 +66,7 @@ hlrun_comb = function(comb, global_counter = T) {
   hlrun(k, paste("Scenario", li))
 }
 
+# Saves the information describing that batch of simulations
 save.folder.sim.info = function (sim.folder) {
   dir.create(sim.folder)
   
@@ -84,6 +85,16 @@ save.folder.sim.info = function (sim.folder) {
   }
 }
 
+# Builds a data frame with all possible combinations of the run.list parameters
+# e.g. if given run.list = list(p1 = c(a,b), p2 = c(1,2,3)), it will produce:
+# p1 p2
+#  a  1
+#  a  2
+#  a  3
+#  b  1
+#  b  2
+#  b  3
+# with all the other parameters equal to the baseline.input
 make.full.sweep.df = function (run.list, run_indicator = F) {
   d = expand.grid(run.list, stringsAsFactors = F)
   if (run_indicator) {
@@ -94,6 +105,16 @@ make.full.sweep.df = function (run.list, run_indicator = F) {
   d
 }
 
+# Builds a data frame with combinations of parameters, varying one parameter at a time
+# e.g. if given run.list = list(p1 = c(a,b), p2 = c(1,2,3), p3 = c(w,z)), it will produce:
+# p1 p2 p3
+#  a  1  w
+#  b  1  w
+#  a  2  w
+#  a  3  w
+#  a  1  z
+#  a  1  z
+# with all the other parameters equal to the baseline.input
 make.sweep.df = function (run.list, run_indicator = F) {
   d = do.call(rbind, lapply(names(run.list), get_par_sweep))
   d = d[!duplicated(d),]
@@ -155,6 +176,7 @@ run_sweep_df = function () {
   })
 }
 
+# Generates combinations for a single parameter sweep data frame, all others parameters kept at baseline
 get_par_sweep = function(a.par) {
   sweep = run.list
   

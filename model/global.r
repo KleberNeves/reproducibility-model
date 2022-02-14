@@ -7,8 +7,10 @@ library(zip)
 library(pwr)
 library(data.table)
 
+# Reference list of possible replication measures
 global_rep_types = c("VOTE_SSS_005", "VOTE_SSS_0005", "FMA_SSS_005", "FMA_SSS_0005", "RMA_SSS_005", "RMA_SSS_0005", "ORIG_IN_RMA_PI", "ORIG_IN_FMA_CI", "REP_IN_ORIG_CI", "CMA_SSS_005", "CMA_SSS_0005", "SMALL_TELESCOPE", "BF_3", "BF_10")
 
+# Reference variables for Shiny App interface
 possible.outcomes = c(
   "False Positives",
   "False Negatives",
@@ -25,12 +27,7 @@ possible.outcomes = c(
   "Reproducibility Rate (SSS) All Papers"
 )
 
-# effects.df = data.table()
-# estimates.df = data.table()
-# eval.df = data.frame()
-# param.df = data.frame()
-# replications.df = data.table()
-
+# Standard inputs for Shiny App, also used as baseline for running multiple simulations without having to specify every parameter
 dichotomous.input = list(
   sdA = 0,
   weightB = 0.5,
@@ -143,8 +140,10 @@ double.dist.input = list(
   fixed.prev = 0
 )
 
+# Variable indicating whether the model is running on Shiny or headlessly
 shiny_running = TRUE
 
+# Helper function to convert Shiny input list to normal list, in case it's running headlessly
 sanitize_shiny_input = function (a.input) {
   if ("reactivevalues" %in% class(a.input)) {
     inputlist = reactiveValuesToList(a.input)
@@ -168,6 +167,7 @@ preset.scenarios = c("",
                      "Continuous, low power, high bias"
 )
 
+# Loads all the other files
 tryCatch({
   # Help text
   overview_help_text = read_file("./help/overview.html")
@@ -179,6 +179,6 @@ tryCatch({
   source("eval.r")
   source("rep.r")
 }, error = function (e) {
-  print("Some files not found. If you're sourcing this for analysis, don't worry.")
-  # print(e)
+  print("Some files not found. If you're sourcing this for analysis, don't worry, it's likely the help HTML files for the app.")
+  print(e)
 })
